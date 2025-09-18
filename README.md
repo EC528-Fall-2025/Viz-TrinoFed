@@ -14,7 +14,7 @@ Again, the description should be specific enough that you can determine whether 
 
 ## 3.   Scope and Features Of The Project:
 
-checking authority- Zhengyuan Li
+
 
 ** **
 
