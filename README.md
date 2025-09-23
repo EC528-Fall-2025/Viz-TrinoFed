@@ -53,8 +53,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Modular components for others to integrate with existing Trino monitoring tools.
 
  
-
-Design Implications and Discussion:
+## Design Implications and Discussion:
 
 This section discusses the implications and reasons of the design decisions made during the global architecture design.
 
