@@ -32,10 +32,10 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Use a broker such as Kafka to capture execution events and push them downstream to our visualization services and display them.
 
 ### 2. Processing and Aggregation Layer
-- <u>Metrics Aggregator</u>: Normalize raw events like planning, execution, scheduling, join stages and merge stages into a common schema.
-- <u>Error Mapping</u>: Associate from connectors (like PostgreSQL errors) with the corresponding nodes in the query tree.
-- <u>Time Allocation</u>: Calculate the time spent in each stage with scheduling, connector execution, and network transfer metrics.
-- <u>Observability Integration</u>: Export enhanced metrics from our project to either Prometheus or Grafana for time monitoring alongside visualization.
+- **Metrics Aggregator**: Normalize raw events like planning, execution, scheduling, join stages and merge stages into a common schema.
+- **Error Mapping**: Associate from connectors (like PostgreSQL errors) with the corresponding nodes in the query tree.
+- **Time Allocation**: Calculate the time spent in each stage with scheduling, connector execution, and network transfer metrics.
+- **Observability Integration**: Export enhanced metrics from our project to either Prometheus or Grafana for time monitoring alongside visualization.
 
 
 
