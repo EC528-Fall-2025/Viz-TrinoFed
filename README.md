@@ -22,11 +22,15 @@ It should be specific enough that you can determine that e.g. feature A is in-sc
 
 ## 4. Solution Concept
 
-This section provides a high-level outline of the solution.
+## Introduction
+To complement the processing of queries on Trino, a distributed SQL query engine written in Java, our project aims to make the user end even more friendly and reveal more information than already shown about the lifecycle of each query. We want to reveal the complete life cycle of a query across all federated data sources. Taking the already shown runtime metrics and query plan structures from Trino, we will enrich them with more information like error data or connector-level performance, then display them in an interactive display tree, whether in a plugin, separate hosted website, or in any way most visually pleasing and precise. Thus, our project can give developers and engineers an intuitive view at query execution, failures and bookmarks. 
 
-Global Architectural Structure Of the Project:
+## Global Architectural Structure Of the Project:
+### 1. Data Collection Layer
+Retrieve query plans and details in JSON format. This is done with Trino’s EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON) SQL command or with coordinator endpoints.
+Capture runtime metrics through Trino’s API and own built in metrics, EXPLAIN ANALYZE output, or directly from any workers on the system. Some metrics we will capture include execution time, errors, execution time and I/O information. 
+Use a broker such as Kafka to capture execution events and push them downstream to our visualization services and display them.
 
-This section provides a high-level architecture or a conceptual diagram showing the scope of the solution. If wireframes or visuals have already been done, this section could also be used to show how the intended solution will look. This section also provides a walkthrough explanation of the architectural structure.
 
  
 
