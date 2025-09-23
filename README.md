@@ -55,7 +55,19 @@ To complement the processing of queries on Trino, a distributed SQL query engine
  
 ## Design Implications and Discussion:
 
-This section discusses the implications and reasons of the design decisions made during the global architecture design.
+### 1. Design Implications
+- **Transparency**: Makes federated query execution across multiple different data sources transparent to the convenience of engineers and programmers who need to identify bottlenecks, learn the database queries quickly, and improves presentation for software products.
+- **Debugging**: Find slow queries, connector-level failures, and failed query connections.
+- **Educational**: Help new users understand distributed query execution, not only new programmers but also new hires in an office to see their database easier and get started faster.
+- **Extendible**: Built on open tools like Prometheus or Kafka that can then scale and integrate into existing systems.
+- **Not just UI**: A pipeline of observability for distributed query execution, in depth at every step. 
+- **Observability**: Doesn’t interfere with Trino events, only observing events.
+
+### 2. Design Choices:
+- **Kafka**: Kafka is a good broker because Trino generates query events asynchronously, so Kafka provides durability, scalability, and replayability. Kafka also decouples event capture from visualization.
+- **JSON Queries and API Integration**: Trino has existing JSON outputs (EXPLAIN, EXPLAIN ANALYZE, REST endpoints), so we will use these existing outputs to make this product compatible with all Trino core engines, lightweight, and future proof against future Trino updates.
+- **Reactflow**: The best choice for readable frontend of the tree rather than a static log output. We will have expand/collapse nodes, color-coded statuses, and hover interactions to make the simple metrics of the default Trino more readable.
+- **Security choices**: Only expose query metadata and execution metrics, never query results. This way, no sensitive data is leaked. 
 
 ## 5. Acceptance criteria
 
