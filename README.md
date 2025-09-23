@@ -168,11 +168,46 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 
 ## 5. Acceptance criteria
 
-This section discusses the minimum acceptance criteria at the end of the project and stretch goals.
+### Minimum acceptance criteria
+- **Core Visualization Functionality**: Develop an interactive web UI that successfully renders the query execution tree for a federated Trino query joining data from at least two different sources (PostgreSQL and MongoDB).   
+- **Query Lifecycle Display**: The visualization must clearly distinguish between the primary phases of a query's lifecycle: Planning, Scheduling, Execution (per data source), and Merging.   
+- **Basic Metrics & Error Reporting**: The UI must display the total time spent for a query and visually indicate where in the tree an error occurred if a query fails. The system must successfully capture this data using Trino's Kafka Event Listener.   
+- **Plugin Packaging**: The final tool must be packaged as a basic, open-source Trino plugin to facilitate straightforward installation and use by the Trino community.
+
+### Stretch goals:
+- **Advanced Metric Visualization**: Display detailed, per-phase performance metrics, including planning time, network latency, scheduling delays, and join/merge time. Implement color-coded indicators (🟢, 🟡, 🔴) to denote success, high latency, or failure.   
+- **Enhanced UI Interactivity**: Implement advanced UI features using ReactFlow, such as the ability to expand and collapse nodes in the query tree and hover over a node to view detailed metadata and error logs.
+- **Historical Query Analysis**: Integrate a persistent storage solution (e.g., a simple database) to store query metrics, allowing users to view and analyze the history of recent query executions.
+- **Broader Connector Support**: Extend the visualization tool to reliably support additional Trino connectors beyond the initial PostgreSQL and MongoDB scope.
 
 ## 6.  Release Planning:
 
-Release planning section describes how the project will deliver incremental sets of features and functions in a series of releases to completion. Identification of user stories associated with iterations that will ease/guide sprint planning sessions is encouraged. Higher level details for the first iteration is expected.
+### Sprint 1: Project Setup & Data Ingestion
+- Finalize system architecture and create a detailed development plan.
+- Set up a local Trino environment using Docker, with PostgreSQL and MongoDB connectors configured.  
+- Configure and enable the Trino Kafka Event Listener to capture query events.  
+- Develop a basic backend service to consume events from Kafka.
+- Initialize a skeleton frontend application using React and TypeScript.
+### Sprint 2: Backend Logic & MVP Visualization
+- Implement backend logic to parse and correlate Kafka events using query IDs.
+- Develop the data model to reconstruct a hierarchical query tree from the events.
+- Create a basic, non-interactive web UI to render a static query tree for a completed query.
+- Connect the frontend to the backend to display the first visual results.
+### Sprint 3: Integrating Core Metrics & Error Handling
+- Enhance the backend to calculate timing for each query phase (planning, scheduling, execution, merging).  
+- Display these core performance metrics on the corresponding nodes in the UI.
+- Implement logic to visually flag failed nodes in the tree.
+- Show high-level error messages in the UI when a user interacts with a failed node.  
+### Sprint 4: UI Interactivity & Refinement
+- Implement advanced UI features like the ability to expand and collapse nodes in the query tree.
+- Add color-coded statuses for quick readability (e.g., green for success, red for error).
+- Refine the overall UI/UX based on feedback to ensure the visualization is intuitive.
+- Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
+### Sprint 5: Plugin Packaging & Documentation
+- Structure the entire application as an installable, open-source Trino plugin.
+- Create clear documentation for installation, configuration, and usage.
+- Perform final system testing and address any remaining bugs.
+- Prepare the project for its final presentation and public release.
 
 ** **
 
