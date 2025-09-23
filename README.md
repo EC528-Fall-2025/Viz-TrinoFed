@@ -37,6 +37,16 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **Time Allocation**: Calculate the time spent in each stage with scheduling, connector execution, and network transfer metrics.
 - **Observability Integration**: Export enhanced metrics from our project to either Prometheus or Grafana for time monitoring alongside visualization.
 
+### 3. Visualization Layer
+- **Render the tree**: The distributed query tree should be a visible, interactive, step by step and easy to follow tree. We will use React frontend with visualizer tools.
+- **Each node should reveal**:
+  - Operator/sub-query type (scan, join, aggregate etc.)
+  - Source system (PostgreSQL or MongoDB)
+  - Execution metrics (rows processed, latency, cost)
+  - Errors or warnings
+- **Timeline**: Create a timeline on the sidebar to show the order of planning, scheduling, execution and merging to complement the tree structure.
+- **User Interaction**: Allow users to scroll through the tree, walk through execution flow, collapse or expand subtrees and nodes to focus on bottlenecks and walk through individual metrics. 
+
 
 
  
