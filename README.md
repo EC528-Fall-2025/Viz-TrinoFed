@@ -119,17 +119,52 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 
 ## 4. Solution Concept
 
-This section provides a high-level outline of the solution.
+## Introduction
+To complement the processing of queries on Trino, a distributed SQL query engine written in Java, our project aims to make the user end even more friendly and reveal more information than already shown about the lifecycle of each query. We want to reveal the complete life cycle of a query across all federated data sources. Taking the already shown runtime metrics and query plan structures from Trino, we will enrich them with more information like error data or connector-level performance, then display them in an interactive display tree, whether in a plugin, separate hosted website, or in any way most visually pleasing and precise. Thus, our project can give developers and engineers an intuitive view at query execution, failures and bookmarks. 
 
-Global Architectural Structure Of the Project:
+## Global Architectural Structure Of the Project:
+### 1. Data Collection Layer
+- Retrieve query plans and details in JSON format. This is done with Trino’s EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON) SQL command or with coordinator endpoints.
+- Capture runtime metrics through Trino’s API and own built in metrics, EXPLAIN ANALYZE output, or directly from any workers on the system. Some metrics we will capture include execution time, errors, execution time and I/O information.  
+- Use a broker such as Kafka to capture execution events and push them downstream to our visualization services and display them.
 
-This section provides a high-level architecture or a conceptual diagram showing the scope of the solution. If wireframes or visuals have already been done, this section could also be used to show how the intended solution will look. This section also provides a walkthrough explanation of the architectural structure.
+### 2. Processing and Aggregation Layer
+- **Metrics Aggregator**: Normalize raw events like planning, execution, scheduling, join stages and merge stages into a common schema.
+- **Error Mapping**: Associate from connectors (like PostgreSQL errors) with the corresponding nodes in the query tree.
+- **Time Allocation**: Calculate the time spent in each stage with scheduling, connector execution, and network transfer metrics.
+- **Observability Integration**: Export enhanced metrics from our project to either Prometheus or Grafana for time monitoring alongside visualization.
+
+### 3. Visualization Layer
+- **Render the tree**: The distributed query tree should be a visible, interactive, step by step and easy to follow tree. We will use React frontend with visualizer tools.
+- **Each node should reveal**:
+  - Operator/sub-query type (scan, join, aggregate etc.)
+  - Source system (PostgreSQL or MongoDB)
+  - Execution metrics (rows processed, latency, cost)
+  - Errors or warnings
+- **Timeline**: Create a timeline on the sidebar to show the order of planning, scheduling, execution and merging to complement the tree structure.
+- **User Interaction**: Allow users to scroll through the tree, walk through execution flow, collapse or expand subtrees and nodes to focus on bottlenecks and walk through individual metrics. 
+
+### 4. Deployment Model
+- **Backend**:  A lightweight service, likely written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them via GraphQL API to the frontend
+- **Scalability**: Deploy on Kubernetes with Kafka for event streaming. Use Prometheus/Grafana for observability. 
+- Modular components for others to integrate with existing Trino monitoring tools.
 
  
+## Design Implications and Discussion:
 
-Design Implications and Discussion:
+### 1. Design Implications
+- **Transparency**: Makes federated query execution across multiple different data sources transparent to the convenience of engineers and programmers who need to identify bottlenecks, learn the database queries quickly, and improves presentation for software products.
+- **Debugging**: Find slow queries, connector-level failures, and failed query connections.
+- **Educational**: Help new users understand distributed query execution, not only new programmers but also new hires in an office to see their database easier and get started faster.
+- **Extendible**: Built on open tools like Prometheus or Kafka that can then scale and integrate into existing systems.
+- **Not just UI**: A pipeline of observability for distributed query execution, in depth at every step. 
+- **Observability**: Doesn’t interfere with Trino events, only observing events.
 
-This section discusses the implications and reasons of the design decisions made during the global architecture design.
+### 2. Design Choices:
+- **Kafka**: Kafka is a good broker because Trino generates query events asynchronously, so Kafka provides durability, scalability, and replayability. Kafka also decouples event capture from visualization.
+- **JSON Queries and API Integration**: Trino has existing JSON outputs (EXPLAIN, EXPLAIN ANALYZE, REST endpoints), so we will use these existing outputs to make this product compatible with all Trino core engines, lightweight, and future proof against future Trino updates.
+- **Reactflow**: The best choice for readable frontend of the tree rather than a static log output. We will have expand/collapse nodes, color-coded statuses, and hover interactions to make the simple metrics of the default Trino more readable.
+- **Security choices**: Only expose query metadata and execution metrics, never query results. This way, no sensitive data is leaked. 
 
 ## 5. Acceptance criteria
 
