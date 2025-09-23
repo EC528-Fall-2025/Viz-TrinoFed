@@ -1,3 +1,15 @@
+# Visualization of Trino Query Trees on Federated Systems 
+
+## Collaborators
+---
+| Name | Email |
+|---|---|
+| Quargs Greene | qgreene@bu.edu |
+| Zhengyuan Li | zhyuanl@bu.edu |
+| Nathan Strahs | nstrahs@bu.edu |
+| Jared Shi | jaredshi@bu.edu |
+| Jacky Chen | jchen07@bu.edu |
+
 ## 1.   Vision and Goals Of The Project:
 
 ### Goal
@@ -119,6 +131,9 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 
 ## 4. Solution Concept
 
+## Current Architecture
+<img width="781" height="772" alt="Trino Viz Architecture Diagram" src="https://github.com/user-attachments/assets/e147687f-daa8-43e4-b0cf-3cef3743c4bb" />
+
 ## Introduction
 To complement the processing of queries on Trino, a distributed SQL query engine written in Java, our project aims to make the user end even more friendly and reveal more information than already shown about the lifecycle of each query. We want to reveal the complete life cycle of a query across all federated data sources. Taking the already shown runtime metrics and query plan structures from Trino, we will enrich them with more information like error data or connector-level performance, then display them in an interactive display tree, whether in a plugin, separate hosted website, or in any way most visually pleasing and precise. Thus, our project can give developers and engineers an intuitive view at query execution, failures and bookmarks. 
 
@@ -182,28 +197,28 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 
 ## 6.  Release Planning:
 
-### Sprint 1: Project Setup & Data Ingestion
+### Sprint 1: Project Setup & Data Ingestion (9/24 - 10/1)
 - Finalize system architecture and create a detailed development plan.
 - Set up a local Trino environment using Docker, with PostgreSQL and MongoDB connectors configured.  
 - Configure and enable the Trino Kafka Event Listener to capture query events.  
 - Develop a basic backend service to consume events from Kafka.
 - Initialize a skeleton frontend application using React and TypeScript.
-### Sprint 2: Backend Logic & MVP Visualization
+### Sprint 2: Backend Logic & MVP Visualization (10/2 - 10/15)
 - Implement backend logic to parse and correlate Kafka events using query IDs.
 - Develop the data model to reconstruct a hierarchical query tree from the events.
 - Create a basic, non-interactive web UI to render a static query tree for a completed query.
 - Connect the frontend to the backend to display the first visual results.
-### Sprint 3: Integrating Core Metrics & Error Handling
+### Sprint 3: Integrating Core Metrics & Error Handling (10/16-10/29)
 - Enhance the backend to calculate timing for each query phase (planning, scheduling, execution, merging).  
 - Display these core performance metrics on the corresponding nodes in the UI.
 - Implement logic to visually flag failed nodes in the tree.
 - Show high-level error messages in the UI when a user interacts with a failed node.  
-### Sprint 4: UI Interactivity & Refinement
+### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
 - Implement advanced UI features like the ability to expand and collapse nodes in the query tree.
 - Add color-coded statuses for quick readability (e.g., green for success, red for error).
 - Refine the overall UI/UX based on feedback to ensure the visualization is intuitive.
 - Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
-### Sprint 5: Plugin Packaging & Documentation
+### Sprint 5: Plugin Packaging & Documentation (11/13-11/26)
 - Structure the entire application as an installable, open-source Trino plugin.
 - Create clear documentation for installation, configuration, and usage.
 - Perform final system testing and address any remaining bugs.
