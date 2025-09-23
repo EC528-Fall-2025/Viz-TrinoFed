@@ -210,9 +210,3 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Prepare the project for its final presentation and public release.
 
 ** **
-
-## General comments
-
-Remember that you can always add features at the end of the semester, but you can't go back in time and gain back time you spent on features that you couldn't complete.
-
-** **
