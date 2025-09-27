@@ -1,49 +1,91 @@
-version: "3.9"
+version: '3.9'
 
 services:
-  postgres:
+  # Zookeeper is required for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - trino-network
+
+  # Kafka broker
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - trino-network
+
+  # PostgreSQL database
+  postgresql:
     image: postgres:15
+    container_name: postgresql
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - ./init/postgres:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    networks:
+      - trino-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
-  mongo:
-    image: mongo:6
+  # MongoDB database
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-    volumes:
-      - ./init/mongo:/docker-entrypoint-initdb.d
+      MONGO_INITDB_DATABASE: ${POSTGRES_DB} # Reusing the DB name for simplicity
     ports:
       - "27017:27017"
+    networks:
+      - trino-network
+    volumes:
+      - mongo-data:/data/db
 
-  zookeeper:
-    image: wurstmeister/zookeeper
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: wurstmeister/kafka
-    environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-
+  # Trino server
   trino:
-    image: trinodb/trino
+    image: trinodb/trino:latest
+    container_name: trino
+    depends_on:
+      - postgresql
+      - mongodb
+      - kafka
     ports:
       - "8080:8080"
     volumes:
-      - ./trino/etc:/etc/trino
-    depends_on:
-      - postgres
-      - mongo
-      - kafka
+      - ./trino/etc/catalog:/etc/trino/catalog:ro
+      - ./trino/etc/config.properties:/etc/trino/config.properties:ro
+      - ./trino/etc/node.properties:/etc/trino/node.properties:ro
+      - ./trino/etc/event-listener.properties:/etc/trino/event-listener.properties:ro
+    env_file:
+      - .env
+    networks:
+      - trino-network
+
+# Networks for services to communicate
+networks:
+  trino-network:
+    driver: bridge
+
+# Volumes for persistent data storage
+volumes:
+  postgres-data:
+  mongo-data:
+
