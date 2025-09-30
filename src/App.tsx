@@ -1,8 +1,9 @@
+
 import AppRoutes from './routing/AppRoutes';
 import {Stack, Box, AppBar, Toolbar} from '@mui/material';
 import NavButton from './NavButton';
 import {Link as RouterLink, useLocation } from 'react-router-dom';
- 
+
 export default function App() {
   const { pathname } = useLocation();
 
