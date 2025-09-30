@@ -1,4 +1,15 @@
-<<<<<<< HEAD
+# Visualization of Trino Query Trees on Federated Systems 
+
+## Collaborators
+---
+| Name | Email |
+|---|---|
+| Quargs Greene | qgreene@bu.edu |
+| Zhengyuan Li | zhyuanl@bu.edu |
+| Nathan Strahs | nstrahs@bu.edu |
+| Jared Shi | jaredshi@bu.edu |
+| Jacky Chen | jchen07@bu.edu |
+
 ## 1.   Vision and Goals Of The Project:
 
 ### Goal
@@ -120,92 +131,8 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 
 ## 4. Solution Concept
 
-## Introduction
-To complement the processing of queries on Trino, a distributed SQL query engine written in Java, our project aims to make the user end even more friendly and reveal more information than already shown about the lifecycle of each query. We want to reveal the complete life cycle of a query across all federated data sources. Taking the already shown runtime metrics and query plan structures from Trino, we will enrich them with more information like error data or connector-level performance, then display them in an interactive display tree, whether in a plugin, separate hosted website, or in any way most visually pleasing and precise. Thus, our project can give developers and engineers an intuitive view at query execution, failures and bookmarks. 
-
-## Global Architectural Structure Of the Project:
-### 1. Data Collection Layer
-- Retrieve query plans and details in JSON format. This is done with Trino’s EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON) SQL command or with coordinator endpoints.
-- Capture runtime metrics through Trino’s API and own built in metrics, EXPLAIN ANALYZE output, or directly from any workers on the system. Some metrics we will capture include execution time, errors, execution time and I/O information.  
-- Use a broker such as Kafka to capture execution events and push them downstream to our visualization services and display them.
-
-### 2. Processing and Aggregation Layer
-- **Metrics Aggregator**: Normalize raw events like planning, execution, scheduling, join stages and merge stages into a common schema.
-- **Error Mapping**: Associate from connectors (like PostgreSQL errors) with the corresponding nodes in the query tree.
-- **Time Allocation**: Calculate the time spent in each stage with scheduling, connector execution, and network transfer metrics.
-- **Observability Integration**: Export enhanced metrics from our project to either Prometheus or Grafana for time monitoring alongside visualization.
-
-### 3. Visualization Layer
-- **Render the tree**: The distributed query tree should be a visible, interactive, step by step and easy to follow tree. We will use React frontend with visualizer tools.
-- **Each node should reveal**:
-  - Operator/sub-query type (scan, join, aggregate etc.)
-  - Source system (PostgreSQL or MongoDB)
-  - Execution metrics (rows processed, latency, cost)
-  - Errors or warnings
-- **Timeline**: Create a timeline on the sidebar to show the order of planning, scheduling, execution and merging to complement the tree structure.
-- **User Interaction**: Allow users to scroll through the tree, walk through execution flow, collapse or expand subtrees and nodes to focus on bottlenecks and walk through individual metrics. 
-
-### 4. Deployment Model
-- **Backend**:  A lightweight service, likely written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them via GraphQL API to the frontend
-- **Scalability**: Deploy on Kubernetes with Kafka for event streaming. Use Prometheus/Grafana for observability. 
-- Modular components for others to integrate with existing Trino monitoring tools.
-
- 
-## Design Implications and Discussion:
-
-### 1. Design Implications
-- **Transparency**: Makes federated query execution across multiple different data sources transparent to the convenience of engineers and programmers who need to identify bottlenecks, learn the database queries quickly, and improves presentation for software products.
-- **Debugging**: Find slow queries, connector-level failures, and failed query connections.
-- **Educational**: Help new users understand distributed query execution, not only new programmers but also new hires in an office to see their database easier and get started faster.
-- **Extendible**: Built on open tools like Prometheus or Kafka that can then scale and integrate into existing systems.
-- **Not just UI**: A pipeline of observability for distributed query execution, in depth at every step. 
-- **Observability**: Doesn’t interfere with Trino events, only observing events.
-
-### 2. Design Choices:
-- **Kafka**: Kafka is a good broker because Trino generates query events asynchronously, so Kafka provides durability, scalability, and replayability. Kafka also decouples event capture from visualization.
-- **JSON Queries and API Integration**: Trino has existing JSON outputs (EXPLAIN, EXPLAIN ANALYZE, REST endpoints), so we will use these existing outputs to make this product compatible with all Trino core engines, lightweight, and future proof against future Trino updates.
-- **Reactflow**: The best choice for readable frontend of the tree rather than a static log output. We will have expand/collapse nodes, color-coded statuses, and hover interactions to make the simple metrics of the default Trino more readable.
-- **Security choices**: Only expose query metadata and execution metrics, never query results. This way, no sensitive data is leaked. 
-
-## 5. Acceptance criteria
-
-This section discusses the minimum acceptance criteria at the end of the project and stretch goals.
-
-## 6.  Release Planning:
-
-Release planning section describes how the project will deliver incremental sets of features and functions in a series of releases to completion. Identification of user stories associated with iterations that will ease/guide sprint planning sessions is encouraged. Higher level details for the first iteration is expected.
-
-** **
-
-## General comments
-
-Remember that you can always add features at the end of the semester, but you can't go back in time and gain back time you spent on features that you couldn't complete.
-
-** **
-=======
-## 1.   Vision and Goals Of The Project:
-
-The vision section describes the final desired state of the project once the project is complete. It also specifies the key goals of the project. This section provides a context for decision-making. A shared vision among all team members can help ensuring that the solution meets the intended goals. A solid vision clarifies perspective and facilitates decision-making.
-
-The vision statement should be specific enough that you can look at a proposed solution and say either "yes, this meets the vision and goals", or "no, it does not".
-
-## 2. Users/Personas Of The Project:
-
-This section describes the principal user roles of the project together with the key characteristics of these roles. This information will inform the design and the user scenarios. A complete set of roles helps in ensuring that high-level requirements can be identified in the product backlog.
-
-Again, the description should be specific enough that you can determine whether user A, performing action B, is a member of the set of users the project is designed for.
-
-** **
-
-## 3.   Scope and Features Of The Project:
-
-The Scope places a boundary around the solution by detailing the range of features and functions of the project. This section helps to clarify the solution scope and can explicitly state what will not be delivered as well.
-
-It should be specific enough that you can determine that e.g. feature A is in-scope, while feature B is out-of-scope.
-
-** **
-
-## 4. Solution Concept
+## Current Architecture
+<img width="781" height="772" alt="Trino Viz Architecture Diagram" src="https://github.com/user-attachments/assets/e147687f-daa8-43e4-b0cf-3cef3743c4bb" />
 
 ## Introduction
 To complement the processing of queries on Trino, a distributed SQL query engine written in Java, our project aims to make the user end even more friendly and reveal more information than already shown about the lifecycle of each query. We want to reveal the complete life cycle of a query across all federated data sources. Taking the already shown runtime metrics and query plan structures from Trino, we will enrich them with more information like error data or connector-level performance, then display them in an interactive display tree, whether in a plugin, separate hosted website, or in any way most visually pleasing and precise. Thus, our project can give developers and engineers an intuitive view at query execution, failures and bookmarks. 
@@ -256,17 +183,45 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 
 ## 5. Acceptance criteria
 
-This section discusses the minimum acceptance criteria at the end of the project and stretch goals.
+### Minimum acceptance criteria
+- **Core Visualization Functionality**: Develop an interactive web UI that successfully renders the query execution tree for a federated Trino query joining data from at least two different sources (PostgreSQL and MongoDB).   
+- **Query Lifecycle Display**: The visualization must clearly distinguish between the primary phases of a query's lifecycle: Planning, Scheduling, Execution (per data source), and Merging.   
+- **Basic Metrics & Error Reporting**: The UI must display the total time spent for a query and visually indicate where in the tree an error occurred if a query fails. The system must successfully capture this data using Trino's Kafka Event Listener.   
+- **Plugin Packaging**: The final tool must be packaged as a basic, open-source Trino plugin to facilitate straightforward installation and use by the Trino community.
+
+### Stretch goals:
+- **Advanced Metric Visualization**: Display detailed, per-phase performance metrics, including planning time, network latency, scheduling delays, and join/merge time. Implement color-coded indicators (🟢, 🟡, 🔴) to denote success, high latency, or failure.   
+- **Enhanced UI Interactivity**: Implement advanced UI features using ReactFlow, such as the ability to expand and collapse nodes in the query tree and hover over a node to view detailed metadata and error logs.
+- **Historical Query Analysis**: Integrate a persistent storage solution (e.g., a simple database) to store query metrics, allowing users to view and analyze the history of recent query executions.
+- **Broader Connector Support**: Extend the visualization tool to reliably support additional Trino connectors beyond the initial PostgreSQL and MongoDB scope.
 
 ## 6.  Release Planning:
 
-Release planning section describes how the project will deliver incremental sets of features and functions in a series of releases to completion. Identification of user stories associated with iterations that will ease/guide sprint planning sessions is encouraged. Higher level details for the first iteration is expected.
+### Sprint 1: Project Setup & Data Ingestion (9/24 - 10/1)
+- Finalize system architecture and create a detailed development plan.
+- Set up a local Trino environment using Docker, with PostgreSQL and MongoDB connectors configured.  
+- Configure and enable the Trino Kafka Event Listener to capture query events.  
+- Develop a basic backend service to consume events from Kafka.
+- Initialize a skeleton frontend application using React and TypeScript.
+### Sprint 2: Backend Logic & MVP Visualization (10/2 - 10/15)
+- Implement backend logic to parse and correlate Kafka events using query IDs.
+- Develop the data model to reconstruct a hierarchical query tree from the events.
+- Create a basic, non-interactive web UI to render a static query tree for a completed query.
+- Connect the frontend to the backend to display the first visual results.
+### Sprint 3: Integrating Core Metrics & Error Handling (10/16-10/29)
+- Enhance the backend to calculate timing for each query phase (planning, scheduling, execution, merging).  
+- Display these core performance metrics on the corresponding nodes in the UI.
+- Implement logic to visually flag failed nodes in the tree.
+- Show high-level error messages in the UI when a user interacts with a failed node.  
+### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
+- Implement advanced UI features like the ability to expand and collapse nodes in the query tree.
+- Add color-coded statuses for quick readability (e.g., green for success, red for error).
+- Refine the overall UI/UX based on feedback to ensure the visualization is intuitive.
+- Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
+### Sprint 5: Plugin Packaging & Documentation (11/13-11/26)
+- Structure the entire application as an installable, open-source Trino plugin.
+- Create clear documentation for installation, configuration, and usage.
+- Perform final system testing and address any remaining bugs.
+- Prepare the project for its final presentation and public release.
 
 ** **
-
-## General comments
-
-Remember that you can always add features at the end of the semester, but you can't go back in time and gain back time you spent on features that you couldn't complete.
-
-** **
->>>>>>> abc476e (Add system architecture and development plan documents)
