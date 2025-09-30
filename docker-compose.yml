@@ -43,6 +43,7 @@ services:
       - trino-network
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./init-data/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
 
   # MongoDB database
   mongodb:
@@ -58,6 +59,7 @@ services:
       - trino-network
     volumes:
       - mongo-data:/data/db
+      - ./init-data/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
 
   # Trino server
   trino:
@@ -74,10 +76,28 @@ services:
       - ./trino/etc/config.properties:/etc/trino/config.properties:ro
       - ./trino/etc/node.properties:/etc/trino/node.properties:ro
       - ./trino/etc/event-listener.properties:/etc/trino/event-listener.properties:ro
+      - ./trino/kafka:/etc/trino/kafka:ro
     env_file:
       - .env
     networks:
       - trino-network
+
+  # # Backend service for consuming Kafka events
+  # backend:
+  #   build: 
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: trino-viz-backend
+  #   depends_on:
+  #     - kafka
+  #   ports:
+  #     - "3001:3001"
+  #     - "8081:8081"  # WebSocket port
+  #   environment:
+  #     - KAFKA_BROKER=kafka:29092
+  #     - PORT=3001
+  #   networks:
+  #     - trino-network
 
 # Networks for services to communicate
 networks:
