@@ -226,7 +226,6 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 
 ** **
 
-## Sprint Videos:
-- **Sprint 1:** (google_drive): https://drive.google.com/file/d/12Kgs93nI-796UiD3oaEdlZPOYR7iLEN1/view?usp=sharing
+## 7. Sprint Demos:
+- **Sprint 1 Demo:** [Demo Video](google_drive): https://drive.google.com/file/d/12Kgs93nI-796UiD3oaEdlZPOYR7iLEN1/view?usp=sharing
 
-** **
