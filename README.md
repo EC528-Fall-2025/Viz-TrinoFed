@@ -225,3 +225,6 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Prepare the project for its final presentation and public release.
 
 ** **
+
+## Release Planning:
+- **Sprint 1 Demo:** [Demo Video](google_drive): https://drive.google.com/file/d/12Kgs93nI-796UiD3oaEdlZPOYR7iLEN1/view?usp=sharing
