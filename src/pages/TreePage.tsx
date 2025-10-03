@@ -8,12 +8,16 @@ import {
   NodeChange,
   EdgeChange,
   Connection,
+  MarkerType,
   Node,
   Edge,
   ProOptions,
   ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import DirectedEdge from '../components/DirectedEdge';
+
+const directedEdgeType = {default: DirectedEdge};
 
 const proOptions: ProOptions = { hideAttribution: true };
 
@@ -30,15 +34,16 @@ const initialNodes: Node[] = [
     { id: 'n10', position: { x: -200, y: 900 }, data: { label: 'Node 10' } }
   ];
   
+  // markerEnd is required for the edge direction to be displayed
   const initialEdges: Edge[] = [
-    { id: 'n1-n2', source: 'n1', target: 'n2' }, 
-    { id: 'n2-n3', source: 'n2', target: 'n3' },
-     {id : 'n4-n5', source: 'n4', target: 'n5'}, 
-     {id : 'n5-n6', source: 'n5', target: 'n6'}, 
-     {id: 'n5-n7', source: 'n5', target: 'n7'}, 
-     {id: 'n7-n8', source: 'n7', target: 'n8' }, 
-     {id: 'n7-n9', source: 'n7', target: 'n9'}, 
-     {id: 'n8-n10', source: 'n8', target: 'n10'}
+    { id: 'n1-n2', source: 'n1', target: 'n2', markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}, 
+    { id: 'n2-n3', source: 'n2', target: 'n3' , markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}},
+     {id : 'n4-n5', source: 'n4', target: 'n5', markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}, 
+     {id : 'n5-n6', source: 'n5', target: 'n6', markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}, 
+     {id: 'n5-n7', source: 'n5', target: 'n7', markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}, 
+     {id: 'n7-n8', source: 'n7', target: 'n8' , markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}, 
+     {id: 'n7-n9', source: 'n7', target: 'n9', markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}, 
+     {id: 'n8-n10', source: 'n8', target: 'n10', markerEnd: {type: MarkerType.ArrowClosed, width: 20, height: 20}}
     ];
 
 const TreePage: React.FC = () => {
@@ -78,6 +83,7 @@ const TreePage: React.FC = () => {
         fitView
         onInit={onInit}
         proOptions={proOptions}
+        edgeTypes={directedEdgeType}
       />
     </div>
   );
