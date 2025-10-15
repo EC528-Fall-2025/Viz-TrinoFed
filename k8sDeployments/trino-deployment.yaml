@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trino
+  template:
+    metadata:
+      labels:
+        app: trino
+    spec:
+      containers:
+        - name: trino
+          image: trinodb/trino:latest
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: trino-config
+              mountPath: /etc/trino
+              readOnly: true
+      volumes:
+        - name: trino-config
+          hostPath:
+            path: /mnt/c/Users/miloo/Downloads/Viz-TrinoFed/trino/etc
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: trino
