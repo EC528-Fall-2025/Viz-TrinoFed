@@ -101,4 +101,8 @@ Thumbs.db
 # Project specific
 data/
 volumes/
-k8sDeployments/minikube-linux-amd64
+.idea/
+
+
+#frontend
+package-lock.json
