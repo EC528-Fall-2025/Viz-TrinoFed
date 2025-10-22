@@ -1,0 +1,25 @@
+# Delete all Trino resources
+kubectl delete deployment trino -n default
+kubectl delete configmap trino-config trino-catalog -n default
+kubectl delete secret postgres-secret mongo-secret -n default
+
+# Wait for pods to be fully gone
+kubectl get pods -n default | grep trino
+
+# Recreate everything fresh
+kubectl create configmap trino-config \
+  --from-file=config.properties=../trino/etc/config.properties \
+  --from-file=event-listener.properties=../trino/etc/event-listener.properties \
+  --from-file=jvm.config=../trino/etc/jvm.config
+
+kubectl create configmap trino-catalog \
+  --from-file=../trino/etc/catalog/
+
+kubectl create secret generic postgres-secret --from-literal=password=changeme
+kubectl create secret generic mongo-secret --from-literal=password=changeme
+
+# Redeploy Trino
+kubectl apply -f trino-deployment.yaml
+
+# Watch it come up
+kubectl get pods -A -w

@@ -1,0 +1,2 @@
+[2025-10-22 20:28:39,355] WARN [Consumer clientId=console-consumer, groupId=console-consumer-53599] Error while fetching metadata with correlation id 2 : {trino_query_complete=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+^X^CProcessed a total of 0 messages

@@ -17,22 +17,50 @@ spec:
           image: trinodb/trino:latest
           ports:
             - containerPort: 8080
+          env:
+            - name: POSTGRES_DB
+              value: "mydb"
+            - name: POSTGRES_USER
+              value: "admin"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "admin"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: password
           volumeMounts:
             - name: trino-config
               mountPath: /etc/trino
               readOnly: true
+            - name: trino-catalog
+              mountPath: /etc/trino/catalog
+              readOnly: true
+            - name: trino-data
+              mountPath: /data/trino
       volumes:
-        - name: trino-config
-          hostPath:
-            path: /mnt/c/Users/miloo/Downloads/Viz-TrinoFed/trino/etc
-            type: Directory
+      - name: trino-config
+        configMap:
+          name: trino-config
+      - name: trino-catalog
+        configMap:
+          name: trino-catalog
+      - name: trino-data
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: trino
 spec:
+  type: ClusterIP
   ports:
     - port: 8080
+      targetPort: 8080
   selector:
     app: trino
