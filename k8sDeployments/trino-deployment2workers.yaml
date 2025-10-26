@@ -1,0 +1,144 @@
+---
+# Trino Coordinator Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trino
+      component: coordinator
+  template:
+    metadata:
+      labels:
+        app: trino
+        component: coordinator
+    spec:
+      containers:
+        - name: trino
+          image: trinodb/trino:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_DB
+              value: "mydb"
+            - name: POSTGRES_USER
+              value: "admin"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "admin"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: password
+          volumeMounts:
+            - name: trino-coordinator-config
+              mountPath: /etc/trino
+              readOnly: true
+            - name: trino-catalog
+              mountPath: /etc/trino/catalog
+              readOnly: true
+            - name: trino-data
+              mountPath: /data/trino
+      volumes:
+      - name: trino-coordinator-config
+        configMap:
+          name: trino-coordinator-config
+      - name: trino-catalog
+        configMap:
+          name: trino-catalog
+      - name: trino-data
+        emptyDir: {}
+---
+# Trino Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trino-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trino
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: trino
+        component: worker
+    spec:
+      containers:
+        - name: trino
+          image: trinodb/trino:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_DB
+              value: "mydb"
+            - name: POSTGRES_USER
+              value: "admin"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "admin"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: password
+          volumeMounts:
+            - name: trino-worker-config
+              mountPath: /etc/trino
+              readOnly: true
+            - name: trino-catalog
+              mountPath: /etc/trino/catalog
+              readOnly: true
+            - name: trino-data
+              mountPath: /data/trino
+      volumes:
+      - name: trino-worker-config
+        configMap:
+          name: trino-worker-config
+      - name: trino-catalog
+        configMap:
+          name: trino-catalog
+      - name: trino-data
+        emptyDir: {}
+---
+# Service for Coordinator (this is what clients connect to)
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: trino
+    component: coordinator
+---
+# Headless Service for Worker Discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino-worker
+spec:
+  clusterIP: None
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: trino
+    component: worker

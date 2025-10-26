@@ -1,0 +1,28 @@
+kubectl scale deployment trino --replicas=2
+-n default
+
+^scaling Kubernetes to 2 coordinators
+
+We have 2 files: kafka-1podevents.json and kafka-2podevents.json, from the same SQL query:
+
+SELECT * FROM postgres.public.customers;
+
+Listened on two separate occasions, into kafka-1podevents.json output and kafka-2podevents.json output. 
+
+Using this command:
+kubectl exec -it kafka-0 -n default -- kafka-console-consumer   --bootstrap-server localhost:9092   --topic trino_query_complete   --from-beginning > [NAME OF JSON FILE]
+
+deployment.yaml deploys Kafka, Zookeeper, Postgres and MongoDB.
+deploy-1worker.sh and deploy-2workers.sh deploys Trino with one and two workers respectively using their YAML files.
+
+We listened to the same query on both 1 and 2 worker configurations as well:
+
+SELECT * FROM postgres.public.customers;
+
+And got two separate outputs kafka-1workerevents.json and kafka-2workersevents.json
+
+If you want to switch from 1 worker to 2 or 2 workers to 1, you have to run delete-1worker.sh first, or delete-2workers.sh first depending on what you were listening on first, and then redeploy on port 8080 and run the sh script you want.
+
+kubectl port-forward svc/trino 8080:8080
+
+3 Terminal tabs open.
