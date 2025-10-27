@@ -13,10 +13,11 @@ import { Position } from '@xyflow/react';
 import DirectedEdge from '../components/DirectedEdge';
 import { QueryRFNode, QueryNodeData } from '../components/Node';
 import DatabaseNode from '../components/DatabaseNode';
+import { FragmentNode } from '../components/FragmentNode';
 import QueryPlanPanel from '../components/QueryPlanPanel';
 import UnifiedMetricsPanel from '../components/UnifiedMetricsPanel';
 import { apiService } from '../services/api.service';
-import { QueryTree, QueryTreeNode } from '../types/api.types';
+import { QueryTree, QueryTreeNode, Fragment } from '../types/api.types';
 import { Database } from '../types/database.types';
 
 const elk = new ELK();
@@ -24,8 +25,10 @@ const NODE_W = 300;
 const NODE_H = 160;
 const DB_NODE_W = 350;
 const DB_NODE_H = 200;
+const FRAGMENT_NODE_W = 320;
+const FRAGMENT_NODE_H = 200;
 const directedEdgeTypes = { directed: DirectedEdge };
-const nodeTypes = { queryNode: QueryRFNode, databaseNode: DatabaseNode };
+const nodeTypes = { queryNode: QueryRFNode, databaseNode: DatabaseNode, fragmentNode: FragmentNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
 // Map state to status
@@ -284,6 +287,101 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
   return { nodes: rfNodes, edges: rfEdges };
 }
 
+// Convert fragments to ReactFlow nodes and edges
+function convertFragmentsToNodes(fragments: Fragment[], databases: Database[]) {
+  const rfNodes: Node[] = [];
+  const rfEdges: Edge[] = [];
+
+  // Add database nodes
+  databases.forEach((db, index) => {
+    rfNodes.push({
+      id: `db_${db.id}`,
+      type: 'databaseNode',
+      position: { x: -500, y: index * (DB_NODE_H + 50) },
+      data: { ...db, label: db.name },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+  });
+
+  // Add fragment nodes (fragments are already sorted in descending order from backend)
+  fragments.forEach((fragment, index) => {
+    rfNodes.push({
+      id: `fragment_${fragment.fragmentId}`,
+      type: 'fragmentNode',
+      position: { x: 0, y: 0 }, // Will be positioned by dagre
+      data: { fragment },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+  });
+
+  // Create sequential edges between fragments (descending order: highest -> lowest)
+  for (let i = 0; i < fragments.length - 1; i++) {
+    const currentFragment = fragments[i];
+    const nextFragment = fragments[i + 1];
+    
+    rfEdges.push({
+      id: `fragment_${currentFragment.fragmentId}_to_${nextFragment.fragmentId}`,
+      source: `fragment_${currentFragment.fragmentId}`,
+      sourceHandle: 'out',
+      target: `fragment_${nextFragment.fragmentId}`,
+      targetHandle: 'in',
+      type: 'directed',
+      style: { stroke: '#1976d2', strokeWidth: 3 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#1976d2', width: 20, height: 20 },
+    });
+  }
+
+  // Connect database nodes to the highest fragment ID (leaf fragments)
+  if (fragments.length > 0) {
+    const highestFragment = fragments[0]; // Already sorted in descending order
+    
+    databases.forEach(db => {
+      rfEdges.push({
+        id: `db_${db.id}_to_fragment_${highestFragment.fragmentId}`,
+        source: `db_${db.id}`,
+        sourceHandle: 'right',
+        target: `fragment_${highestFragment.fragmentId}`,
+        targetHandle: 'in',
+        type: 'directed',
+        style: { 
+          stroke: '#6c757d', 
+          strokeWidth: 2, 
+          strokeDasharray: '5,5' 
+        },
+        markerEnd: { 
+          type: MarkerType.ArrowClosed, 
+          color: '#6c757d', 
+          width: 16, 
+          height: 16 
+        },
+      });
+    });
+  }
+
+  // Layout with dagre for fragment nodes
+  const fragmentNodes = rfNodes.filter(n => n.type === 'fragmentNode');
+  const fragmentEdges = rfEdges.filter(e => 
+    fragmentNodes.some(n => n.id === e.source) && 
+    fragmentNodes.some(n => n.id === e.target)
+  );
+  
+  // Apply dagre layout
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'LR', nodesep: 100, ranksep: 200 });
+  g.setDefaultEdgeLabel(() => ({}));
+  fragmentNodes.forEach(n => g.setNode(n.id, { width: FRAGMENT_NODE_W, height: FRAGMENT_NODE_H }));
+  fragmentEdges.forEach(e => g.setEdge(e.source, e.target));
+  dagre.layout(g);
+  fragmentNodes.forEach(n => {
+    const p = g.node(n.id);
+    n.position = { x: p.x - FRAGMENT_NODE_W / 2, y: p.y - FRAGMENT_NODE_H / 2 };
+  });
+
+  return { nodes: rfNodes, edges: rfEdges };
+}
+
 const TreePage: React.FC = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -330,28 +428,42 @@ const TreePage: React.FC = () => {
         // Always update current query, even during subsequent updates
         setCurrentQuery(queryToDisplay);
 
-        // Check if we have a complex tree structure or just simple events
-        const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
-        
-        let nodesToVisualize: QueryNodeData[];
-        let isEventTimeline = false;
-        
-        if (hasComplexTree && queryToDisplay.root) {
-          // Convert backend data to QueryNodeData format for complex trees
-          nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
-          isEventTimeline = false;
-        } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
-          // Create event timeline for simple queries
-          nodesToVisualize = createEventTimeline(queryToDisplay);
-          isEventTimeline = true;
+        let rfNodes: Node[];
+        let rfEdges: Edge[];
+
+        // Check if we have fragments to visualize (new fragment-based visualization)
+        if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
+          // Use fragment-based visualization
+          const result = convertFragmentsToNodes(queryToDisplay.fragments, databases);
+          rfNodes = result.nodes;
+          rfEdges = result.edges;
         } else {
-          setError('No visualization data available');
-          setLoading(false);
-          return;
-        }
+          // Fallback to existing visualization methods
+          // Check if we have a complex tree structure or just simple events
+          const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
           
-        // Generate React Flow nodes and edges with databases
-        const { nodes: rfNodes, edges: rfEdges } = toReactFlow(nodesToVisualize, databases);
+          let nodesToVisualize: QueryNodeData[];
+          let isEventTimeline = false;
+          
+          if (hasComplexTree && queryToDisplay.root) {
+            // Convert backend data to QueryNodeData format for complex trees
+            nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
+            isEventTimeline = false;
+          } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
+            // Create event timeline for simple queries
+            nodesToVisualize = createEventTimeline(queryToDisplay);
+            isEventTimeline = true;
+          } else {
+            setError('No visualization data available');
+            setLoading(false);
+            return;
+          }
+            
+          // Generate React Flow nodes and edges with databases
+          const result = toReactFlow(nodesToVisualize, databases);
+          rfNodes = result.nodes;
+          rfEdges = result.edges;
+        }
         
         // Use dagre layout for all trees (ELK has issues with port references)
         // Apply dagre layout to all nodes
