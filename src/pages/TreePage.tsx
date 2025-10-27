@@ -14,6 +14,7 @@ import DirectedEdge from '../components/DirectedEdge';
 import { QueryRFNode, QueryNodeData } from '../components/Node';
 import DatabaseNode from '../components/DatabaseNode';
 import { FragmentNode } from '../components/FragmentNode';
+import { OutputNode } from '../components/OutputNode';
 import QueryPlanPanel from '../components/QueryPlanPanel';
 import UnifiedMetricsPanel from '../components/UnifiedMetricsPanel';
 import { apiService } from '../services/api.service';
@@ -27,8 +28,10 @@ const DB_NODE_W = 350;
 const DB_NODE_H = 200;
 const FRAGMENT_NODE_W = 320;
 const FRAGMENT_NODE_H = 200;
+const OUTPUT_NODE_W = 280;
+const OUTPUT_NODE_H = 140;
 const directedEdgeTypes = { directed: DirectedEdge };
-const nodeTypes = { queryNode: QueryRFNode, databaseNode: DatabaseNode, fragmentNode: FragmentNode };
+const nodeTypes = { queryNode: QueryRFNode, databaseNode: DatabaseNode, fragmentNode: FragmentNode, outputNode: OutputNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
 // Map state to status
@@ -288,7 +291,7 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
 }
 
 // Convert fragments to ReactFlow nodes and edges
-function convertFragmentsToNodes(fragments: Fragment[], databases: Database[]) {
+function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], queryTree: QueryTree) {
   const rfNodes: Node[] = [];
   const rfEdges: Edge[] = [];
 
@@ -316,6 +319,37 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[]) {
     });
   });
 
+  // Get Fragment 0 for output information
+  const fragment0 = fragments.find(f => f.fragmentId === 0);
+  
+  // Parse output columns from Fragment 0's outputLayout
+  let outputColumns: string[] = [];
+  if (fragment0?.outputLayout) {
+    // Parse output layout like "[l_returnflag, count]" or "l_returnflag:varchar(1), count:bigint"
+    outputColumns = fragment0.outputLayout
+      .split(',')
+      .map(col => col.trim().split(':')[0].replace(/[\[\]]/g, '').trim())
+      .filter(col => col.length > 0);
+  }
+
+  // Add output node after Fragment 0
+  rfNodes.push({
+    id: 'output_node',
+    type: 'outputNode',
+    position: { x: 0, y: 0 }, // Will be positioned by dagre
+    data: {
+      queryId: queryTree.queryId,
+      query: queryTree.query,
+      state: queryTree.state,
+      totalRows: queryTree.events?.find(e => e.totalRows)?.totalRows ?? null,
+      executionTime: queryTree.totalExecutionTime,
+      outputLayout: fragment0?.outputLayout ?? null,
+      outputColumns: outputColumns.length > 0 ? outputColumns : undefined,
+    },
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
+  });
+
   // Create sequential edges between fragments (descending order: highest -> lowest)
   for (let i = 0; i < fragments.length - 1; i++) {
     const currentFragment = fragments[i];
@@ -330,6 +364,20 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[]) {
       type: 'directed',
       style: { stroke: '#1976d2', strokeWidth: 3 },
       markerEnd: { type: MarkerType.ArrowClosed, color: '#1976d2', width: 20, height: 20 },
+    });
+  }
+
+  // Connect Fragment 0 to Output Node
+  if (fragment0) {
+    rfEdges.push({
+      id: 'fragment_0_to_output',
+      source: `fragment_${fragment0.fragmentId}`,
+      sourceHandle: 'out',
+      target: 'output_node',
+      targetHandle: 'in',
+      type: 'directed',
+      style: { stroke: '#2e7d32', strokeWidth: 3 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#2e7d32', width: 20, height: 20 },
     });
   }
 
@@ -360,23 +408,29 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[]) {
     });
   }
 
-  // Layout with dagre for fragment nodes
-  const fragmentNodes = rfNodes.filter(n => n.type === 'fragmentNode');
-  const fragmentEdges = rfEdges.filter(e => 
-    fragmentNodes.some(n => n.id === e.source) && 
-    fragmentNodes.some(n => n.id === e.target)
+  // Layout with dagre for fragment and output nodes
+  const layoutNodes = rfNodes.filter(n => n.type === 'fragmentNode' || n.type === 'outputNode');
+  const layoutEdges = rfEdges.filter(e => 
+    layoutNodes.some(n => n.id === e.source) && 
+    layoutNodes.some(n => n.id === e.target)
   );
   
   // Apply dagre layout
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'LR', nodesep: 100, ranksep: 200 });
   g.setDefaultEdgeLabel(() => ({}));
-  fragmentNodes.forEach(n => g.setNode(n.id, { width: FRAGMENT_NODE_W, height: FRAGMENT_NODE_H }));
-  fragmentEdges.forEach(e => g.setEdge(e.source, e.target));
+  layoutNodes.forEach(n => {
+    const width = n.type === 'outputNode' ? OUTPUT_NODE_W : FRAGMENT_NODE_W;
+    const height = n.type === 'outputNode' ? OUTPUT_NODE_H : FRAGMENT_NODE_H;
+    g.setNode(n.id, { width, height });
+  });
+  layoutEdges.forEach(e => g.setEdge(e.source, e.target));
   dagre.layout(g);
-  fragmentNodes.forEach(n => {
+  layoutNodes.forEach(n => {
     const p = g.node(n.id);
-    n.position = { x: p.x - FRAGMENT_NODE_W / 2, y: p.y - FRAGMENT_NODE_H / 2 };
+    const width = n.type === 'outputNode' ? OUTPUT_NODE_W : FRAGMENT_NODE_W;
+    const height = n.type === 'outputNode' ? OUTPUT_NODE_H : FRAGMENT_NODE_H;
+    n.position = { x: p.x - width / 2, y: p.y - height / 2 };
   });
 
   return { nodes: rfNodes, edges: rfEdges };
@@ -434,7 +488,7 @@ const TreePage: React.FC = () => {
         // Check if we have fragments to visualize (new fragment-based visualization)
         if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
           // Use fragment-based visualization
-          const result = convertFragmentsToNodes(queryToDisplay.fragments, databases);
+          const result = convertFragmentsToNodes(queryToDisplay.fragments, databases, queryToDisplay);
           rfNodes = result.nodes;
           rfEdges = result.edges;
         } else {

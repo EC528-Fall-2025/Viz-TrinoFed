@@ -69,16 +69,30 @@ The visualization now displays Trino query execution plan fragments as nodes, sh
   - 4 connection handles (top, bottom, left, right)
   - Copy/paste functionality and modal support
 
-#### 7. Updated Component: `TreePage.tsx`
+#### 7. New Component: `OutputNode.tsx`
+- **Location**: `src/components/OutputNode.tsx`
+- **Purpose**: Displays the final output stage of the query execution
+- **Features**:
+  - Shows "Output" label with green theme
+  - Displays total output rows
+  - Shows total execution time
+  - Query state/status
+  - Query preview (first 150 chars)
+  - Only has a left handle (terminal node)
+  - Green color scheme to indicate successful completion
+
+#### 8. Updated Component: `TreePage.tsx`
 - **Changes**:
-  - Imported `Fragment` type and `FragmentNode` component
-  - Added `fragmentNode` to node types registry
-  - Added `FRAGMENT_NODE_W` and `FRAGMENT_NODE_H` constants
-  - **New Function**: `convertFragmentsToNodes(fragments, databases)`
+  - Imported `Fragment` type, `FragmentNode`, and `OutputNode` components
+  - Added `fragmentNode` and `outputNode` to node types registry
+  - Added `FRAGMENT_NODE_W`, `FRAGMENT_NODE_H`, `OUTPUT_NODE_W`, and `OUTPUT_NODE_H` constants
+  - **Updated Function**: `convertFragmentsToNodes(fragments, databases, queryTree)`
     - Converts Fragment objects to ReactFlow nodes
     - Creates sequential edges between fragments (descending order)
+    - **Adds Output node after Fragment 0**
+    - Connects Fragment 0 to Output node with green edge
     - Connects database nodes to highest fragment ID
-    - Uses dagre layout for positioning
+    - Uses dagre layout for positioning (includes output node)
   - **Updated Logic**: `loadData()` function now:
     1. Checks if `queryToDisplay.fragments` exists and has items
     2. If yes, uses `convertFragmentsToNodes()` for visualization
@@ -105,16 +119,17 @@ The visualization now displays Trino query execution plan fragments as nodes, sh
 ### Fragment Connections
 
 - **Sequential Flow**: Fragments are connected in descending order (highest ID → lowest ID)
-  - Example: Fragment 3 → Fragment 2 → Fragment 1 → Fragment 0
+  - Example: Fragment 3 → Fragment 2 → Fragment 1 → Fragment 0 → Output
 - **Database Connection**: Database nodes connect to the highest fragment ID (leaf fragments that typically contain TableScan operations)
+- **Output Connection**: Fragment 0 connects to the Output node with a green edge to show final results
 - **Layout**: Uses dagre left-to-right layout for clear sequential visualization
 
 ## Example Visualization
 
 ```
-[Database] -----> [Fragment 3] -> [Fragment 2] -> [Fragment 1] -> [Fragment 0]
-                  [tpch:orders]   [HASH]          [ROUND_ROBIN]  [SINGLE]
-                  TableScan       Aggregate       LocalMerge     Output
+[Database] -----> [Fragment 3] -> [Fragment 2] -> [Fragment 1] -> [Fragment 0] -> [Output]
+                  [tpch:orders]   [HASH]          [ROUND_ROBIN]  [SINGLE]         Final Results
+                  TableScan       Aggregate       LocalMerge     RemoteMerge
 ```
 
 ## Testing
@@ -200,6 +215,7 @@ Potential improvements for the fragment visualization:
 ### Frontend
 - ✅ `src/types/api.types.ts` (UPDATED)
 - ✅ `src/components/FragmentNode.tsx` (NEW)
+- ✅ `src/components/OutputNode.tsx` (NEW)
 - ✅ `src/pages/TreePage.tsx` (UPDATED)
 
 ## Build Status
