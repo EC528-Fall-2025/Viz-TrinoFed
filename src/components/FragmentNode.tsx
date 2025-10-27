@@ -17,14 +17,19 @@ interface FragmentNodeProps {
   };
 }
 
-const getFragmentStatusColor = (fragment: Fragment) => {
+// REMOVED: getFragmentStatusColor (now using white background)
+
+/**
+ * Gets the accent color based on fragment status (for border, handles, and header)
+ */
+const getFragmentAccentColor = (fragment: Fragment) => {
   // Use CPU time to determine status color
   if (fragment.cpuTimeMs !== null && fragment.cpuTimeMs > 0) {
-    return '#c8e6c9'; // Light green - completed
+    return '#51cf66'; // Green for completed (from DatabaseNode 'ACTIVE')
   } else if (fragment.cpuTimeMs === 0) {
-    return '#fff9c4'; // Light yellow - minimal work
+    return '#fcc419'; // Yellow for minimal/pending
   }
-  return '#e3f2fd'; // Light blue - default
+  return '#1976d2'; // Blue for default/running
 };
 
 const getFragmentStatusIcon = (fragment: Fragment) => {
@@ -33,7 +38,8 @@ const getFragmentStatusIcon = (fragment: Fragment) => {
   } else if (fragment.cpuTimeMs === 0) {
     return <HourglassBottom />;
   }
-  return <SentimentSatisfiedAlt />;
+  // Use QuestionMark for null cpuTimeMs, SentimentSatisfiedAlt for other cases
+  return fragment.cpuTimeMs === null ? <QuestionMark /> : <SentimentSatisfiedAlt />;
 };
 
 const formatBytes = (bytes: number | null): string => {
@@ -46,8 +52,9 @@ const formatBytes = (bytes: number | null): string => {
 
 export function FragmentNode({ data }: FragmentNodeProps) {
   const fragment = data.fragment;
-  const bgColor = getFragmentStatusColor(fragment);
+  // const bgColor = getFragmentStatusColor(fragment); // REMOVED
   const statusIcon = getFragmentStatusIcon(fragment);
+  const accentColor = getFragmentAccentColor(fragment); // NEW
 
   return (
     <Box 
@@ -58,14 +65,23 @@ export function FragmentNode({ data }: FragmentNodeProps) {
         width: 320, 
         maxHeight: 500, 
         overflowY: 'auto',
-        borderRadius: 2, 
+        borderRadius: '12px', // UPDATED
         border: 3, 
-        borderColor: '#1976d2',
-        bgcolor: bgColor,
+        borderColor: accentColor, // UPDATED
+        bgcolor: '#ffffff', // UPDATED
         p: 2, 
-        boxShadow: 4,
-        '&:focus-visible': { boxShadow: 6, borderColor: 'primary.dark' },
-        '&:hover': { boxShadow: 6, borderColor: 'primary.main' },
+        boxShadow: '0 6px 16px rgba(0,0,0,0.2)', // UPDATED
+        transition: 'transform 0.2s, box-shadow 0.2s', // NEW
+        // REMOVED: '&:focus-visible' and '&:hover' pseudo-classes
+      }}
+      // NEW: Added hover effects to match DatabaseNode
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'scale(1.05)';
+        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
       }}
     >
       <CopyPaste dataToCopy={`Fragment ${fragment.fragmentId} [${fragment.partitioningType}]`} />
@@ -73,8 +89,8 @@ export function FragmentNode({ data }: FragmentNodeProps) {
       
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#1976d2' }}>
-          Fragment {fragment.fragmentId}
+        <Typography variant="h6" sx={{ fontWeight: 800, color: accentColor }}>
+          Fragment {fragment.fragmentId} {/* UPDATED */}
         </Typography>
         {statusIcon}
         <Box sx={{ ml: 'auto' }}>
@@ -83,7 +99,7 @@ export function FragmentNode({ data }: FragmentNodeProps) {
             label={fragment.partitioningType} 
             sx={{ 
               fontWeight: 600,
-              backgroundColor: '#1976d2',
+              backgroundColor: accentColor, // UPDATED
               color: 'white',
             }} 
           />
@@ -240,11 +256,11 @@ export function FragmentNode({ data }: FragmentNodeProps) {
       )}
       
       {/* Handles for connections */}
-      <Handle id="inTop" type="target" position={Position.Top} style={{ background: '#1976d2', width: 12, height: 12 }} />
-      <Handle id="outBottom" type="source" position={Position.Bottom} style={{ background: '#1976d2', width: 12, height: 12 }} />
-      <Handle id="in" type="target" position={Position.Left} style={{ background: '#1976d2', width: 12, height: 12 }} />
-      <Handle id="out" type="source" position={Position.Right} style={{ background: '#1976d2', width: 12, height: 12 }} />
+      {/* UPDATED: All handles now use accentColor */}
+      <Handle id="inTop" type="target" position={Position.Top} style={{ background: accentColor, width: 12, height: 12 }} />
+      <Handle id="outBottom" type="source" position={Position.Bottom} style={{ background: accentColor, width: 12, height: 12 }} />
+      <Handle id="in" type="target" position={Position.Left} style={{ background: accentColor, width: 12, height: 12 }} />
+      <Handle id="out" type="source" position={Position.Right} style={{ background: accentColor, width: 12, height: 12 }} />
     </Box>
   );
 }
-

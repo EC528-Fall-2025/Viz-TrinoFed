@@ -442,108 +442,97 @@ const TreePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuery, setCurrentQuery] = useState<QueryTree | null>(null);
+  const [selectedFragment, setSelectedFragment] = useState<Fragment | null>(null);
+  const [selectedDatabase, setSelectedDatabase] = useState<Database | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryId = searchParams.get('queryId');
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load databases
-        const databases = await apiService.getDatabases();
-        
-        let queryToDisplay: QueryTree;
-        
-        if (queryId) {
-          // Historical mode: fetch specific query
-          queryToDisplay = await apiService.getQueryById(queryId);
-        } else {
-          // Live mode: fetch latest query
-          const allQueries = await apiService.getAllQueries();
-          
-          // Filter out system queries
-          const queries = allQueries.filter(query => 
-            query.user && 
-            query.user !== 'system' && 
-            !query.user.startsWith('$') &&
-            query.queryId &&
-            !query.queryId.includes('system')
-          );
-          
-          if (queries.length === 0) {
-            setError('No user queries found. Run a query in Trino to see visualization.');
-            setLoading(false);
-            return;
-          }
-          
-          queryToDisplay = queries[queries.length - 1];
-        }
-        
-        // Always update current query, even during subsequent updates
-        setCurrentQuery(queryToDisplay);
+  const loadData = useCallback(async () => {
+    try {
+      const databases = await apiService.getDatabases();
+      let queryToDisplay: QueryTree;
 
-        let rfNodes: Node[];
-        let rfEdges: Edge[];
-
-        // Check if we have fragments to visualize (new fragment-based visualization)
-        if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
-          // Use fragment-based visualization
-          const result = convertFragmentsToNodes(queryToDisplay.fragments, databases, queryToDisplay);
-          rfNodes = result.nodes;
-          rfEdges = result.edges;
-        } else {
-          // Fallback to existing visualization methods
-          // Check if we have a complex tree structure or just simple events
-          const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
-          
-          let nodesToVisualize: QueryNodeData[];
-          let isEventTimeline = false;
-          
-          if (hasComplexTree && queryToDisplay.root) {
-            // Convert backend data to QueryNodeData format for complex trees
-            nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
-            isEventTimeline = false;
-          } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
-            // Create event timeline for simple queries
-            nodesToVisualize = createEventTimeline(queryToDisplay);
-            isEventTimeline = true;
-          } else {
-            setError('No visualization data available');
-            setLoading(false);
-            return;
-          }
-            
-          // Generate React Flow nodes and edges with databases
-          const result = toReactFlow(nodesToVisualize, databases);
-          rfNodes = result.nodes;
-          rfEdges = result.edges;
+      if (queryId) {
+        queryToDisplay = await apiService.getQueryById(queryId);
+      } else {
+        const allQueries = await apiService.getAllQueries();
+        const queries = allQueries.filter(query => 
+          query.user && 
+          query.user !== 'system' && 
+          !query.user.startsWith('$') &&
+          query.queryId &&
+          !query.queryId.includes('system')
+        );
+        if (queries.length === 0) {
+          setError('No user queries found. Run a query in Trino to see visualization.');
+          setLoading(false);
+          return;
         }
-        
-        // Use dagre layout for all trees (ELK has issues with port references)
-        // Apply dagre layout to all nodes
-        setNodes(rfNodes);
-        setEdges(rfEdges);
-        setError(null);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to load data:', err);
-        setError('Failed to connect to backend. Make sure backend is running on http://localhost:8080');
-        setLoading(false);
+        queryToDisplay = queries[queries.length - 1];
       }
-    };
 
+      if (currentQuery?.queryId !== queryToDisplay.queryId) {
+        setSelectedFragment(null);
+        setSelectedDatabase(null);
+      }
+
+      // FIX: Prevent re-render if data hasn't changed
+      if (currentQuery?.queryId === queryToDisplay.queryId && currentQuery?.state === queryToDisplay.state) {
+        setCurrentQuery(queryToDisplay); // Still update state, but skip re-render
+        return; 
+      }
+      
+      setCurrentQuery(queryToDisplay);
+
+      let rfNodes: Node[];
+      let rfEdges: Edge[];
+
+      if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
+        const result = convertFragmentsToNodes(queryToDisplay.fragments, databases, queryToDisplay);
+        rfNodes = result.nodes;
+        rfEdges = result.edges;
+      } else {
+        const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
+        let nodesToVisualize: QueryNodeData[];
+        
+        if (hasComplexTree && queryToDisplay.root) {
+          nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
+        } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
+          nodesToVisualize = createEventTimeline(queryToDisplay);
+        } else {
+          setError('No visualization data available');
+          setLoading(false);
+          return;
+        }
+        const result = toReactFlow(nodesToVisualize, databases);
+        rfNodes = result.nodes;
+        rfEdges = result.edges;
+      }
+      
+      setNodes(rfNodes);
+      setEdges(rfEdges);
+      setError(null);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+      if (!queryId) {
+        setError('Failed to connect to backend. Make sure backend is running on http://localhost:8080');
+      }
+      setLoading(false);
+    }
+  }, [queryId, currentQuery]);
+
+  useEffect(() => {
     loadData();
-    
-    // Only set up auto-refresh if not viewing a historical query
     let interval: NodeJS.Timeout | null = null;
     if (!queryId) {
       interval = setInterval(loadData, 2000);
     }
-    
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [queryId]);
+  }, [queryId, loadData]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes(ns => applyNodeChanges(changes, ns)),
@@ -562,16 +551,31 @@ const TreePage: React.FC = () => {
     []
   );
 
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    if (node.type === 'fragmentNode') {
+      setSelectedFragment(node.data.fragment);
+      setSelectedDatabase(null); // Clear database selection
+    } else if (node.type === 'databaseNode') {
+      setSelectedDatabase(node.data); // Set database selection
+      setSelectedFragment(null); // Clear fragment selection
+    }
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedFragment(null);
+    setSelectedDatabase(null);
+  }, []);
+
   const handleBackToLatest = () => {
     navigate('/');
+    setSelectedFragment(null);
+    setSelectedDatabase(null);
   };
 
-  // Show initial loading screen only on first load
   if (loading && !currentQuery) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>Loading queries...</div>;
   }
 
-  // Show error only if there's no query data to display
   if (error && !currentQuery) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'red', fontSize: '16px', padding: '20px', textAlign: 'center' }}>{error}</div>;
   }
@@ -645,7 +649,12 @@ const TreePage: React.FC = () => {
       {/* Always show panels if we have query data */}
       {currentQuery && (
         <>
-          <UnifiedMetricsPanel query={currentQuery} />
+          {/* Pass selectedFragment and selectedDatabase to the panel */}
+          <UnifiedMetricsPanel 
+            query={currentQuery} 
+            selectedFragment={selectedFragment} 
+            selectedDatabase={selectedDatabase}
+          />
           <QueryPlanPanel
             events={currentQuery.events || []}
             plan={currentQuery.events?.find(e => e.plan)?.plan}
@@ -660,6 +669,8 @@ const TreePage: React.FC = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onInit={onInit}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         fitView
         fitViewOptions={{
           padding: 0.2,
