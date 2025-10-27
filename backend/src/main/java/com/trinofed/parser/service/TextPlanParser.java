@@ -15,8 +15,9 @@ import java.util.regex.Pattern;
 @Service
 public class TextPlanParser {
 
-    // Pattern to match fragment headers: "Fragment 0 [SINGLE]"
-    private static final Pattern FRAGMENT_HEADER_PATTERN = Pattern.compile("^Fragment (\\d+) \\[([A-Z_:]+)]");
+    // 💡 FIX 1: Pattern to match fragment headers. Changed from [A-Z_:]+ to [^]]+ 
+    // to allow any character (including numbers) inside the brackets.
+    private static final Pattern FRAGMENT_HEADER_PATTERN = Pattern.compile("^Fragment (\\d+) \\[([^]]+)]");
     
     // Pattern to extract metrics from the fragment info line
     private static final Pattern CPU_PATTERN = Pattern.compile("CPU: ([0-9.]+)(ms|s)");
@@ -46,7 +47,6 @@ public class TextPlanParser {
         
         Fragment currentFragment = null;
         List<String> currentOperators = new ArrayList<>();
-        int currentFragmentStartLine = -1;
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
@@ -69,34 +69,48 @@ public class TextPlanParser {
                         .build();
                 
                 currentOperators.clear();
-                currentFragmentStartLine = i;
 
                 // Next line typically contains metrics
                 if (i + 1 < lines.length) {
                     String metricsLine = lines[i + 1];
                     parseFragmentMetrics(currentFragment, metricsLine);
+                    // 💡 FIX 2: Skip the metrics line since it was just processed
+                    i++; 
                 }
             } else if (currentFragment != null) {
+                String trimmedLine = line.trim();
+                
+                // Skip empty or purely informative lines in between blocks
+                if (trimmedLine.isEmpty() || trimmedLine.startsWith("Input avg.:") || trimmedLine.startsWith("Output avg.:")) {
+                    continue;
+                }
+                
                 // Check for additional metadata lines
-                if (line.contains("Output layout:")) {
+                if (trimmedLine.startsWith("Output layout:")) {
                     Matcher layoutMatcher = OUTPUT_LAYOUT_PATTERN.matcher(line);
                     if (layoutMatcher.find()) {
                         currentFragment.setOutputLayout(layoutMatcher.group(1));
                     }
-                } else if (line.contains("Output partitioning:")) {
+                } else if (trimmedLine.startsWith("Output partitioning:")) {
                     Matcher partitioningMatcher = OUTPUT_PARTITIONING_PATTERN.matcher(line);
                     if (partitioningMatcher.find()) {
                         currentFragment.setOutputPartitioning(partitioningMatcher.group(1));
                     }
-                } else if (line.trim().startsWith("Output[") || 
-                           line.trim().startsWith("└─") || 
-                           line.trim().startsWith("│") ||
-                           line.trim().startsWith("LocalMerge") ||
-                           line.trim().startsWith("Aggregate") ||
-                           line.trim().startsWith("TableScan") ||
-                           line.trim().startsWith("RemoteSource") ||
-                           line.trim().startsWith("RemoteMerge") ||
-                           line.trim().startsWith("PartialSort")) {
+                } 
+                // Only include lines that are clearly part of the operator tree for the raw text
+                else if (trimmedLine.startsWith("Output[") || 
+                           trimmedLine.startsWith("└─") || 
+                           trimmedLine.startsWith("│") ||
+                           // Catch any other operator/keyword that starts the line
+                           trimmedLine.startsWith("LocalMerge") ||
+                           trimmedLine.startsWith("Aggregate") ||
+                           trimmedLine.startsWith("TableScan") ||
+                           trimmedLine.startsWith("RemoteSource") ||
+                           trimmedLine.startsWith("RemoteMerge") ||
+                           trimmedLine.startsWith("PartialSort") || 
+                           trimmedLine.startsWith("Project") ||
+                           trimmedLine.startsWith("InnerJoin") ||
+                           trimmedLine.startsWith("ScanFilter")) {
                     // This is part of the operator tree
                     currentOperators.add(line);
                 }
@@ -145,7 +159,18 @@ public class TextPlanParser {
             String unit = blockedMatcher.group(2);
             fragment.setBlockedTime(value + unit);
             fragment.setBlockedTimeMs(parseTimeToMs(value, unit));
+        } else if (metricsLine.contains("Blocked")) {
+            // Check for format "Blocked 1.66m (Input: 36.23s, Output: 0.00ns)" where unit isn't next to value
+            Pattern blockedWithoutUnitPattern = Pattern.compile("Blocked\\s+([0-9.]+)(ms|s|m)");
+            Matcher partialBlockedMatcher = blockedWithoutUnitPattern.matcher(metricsLine);
+            if (partialBlockedMatcher.find()) {
+                String value = partialBlockedMatcher.group(1);
+                String unit = partialBlockedMatcher.group(2);
+                fragment.setBlockedTime(value + unit);
+                fragment.setBlockedTimeMs(parseTimeToMs(value, unit));
+            }
         }
+
 
         // Parse Input
         Matcher inputMatcher = INPUT_PATTERN.matcher(metricsLine);
@@ -185,31 +210,37 @@ public class TextPlanParser {
      */
     private double parseTimeToMs(String value, String unit) {
         double val = Double.parseDouble(value);
-        if ("s".equals(unit)) {
-            return val * 1000.0;
-        }
-        return val; // already in ms
+        return switch (unit) {
+            case "s" -> val * 1000.0;
+            case "m" -> val * 60.0 * 1000.0; // handle minutes (1.66m)
+            default -> val; // already in ms
+        };
     }
 
     /**
      * Parses byte size strings like "45B", "352.59kB", "1.23MB", "2.5GB" to bytes.
      */
     private long parseBytesToLong(String bytesStr) {
-        if (bytesStr == null || bytesStr.trim().isEmpty()) {
+        if (bytesStr == null || bytesStr.trim().isEmpty() || bytesStr.trim().equalsIgnoreCase("null")) {
             return 0L;
         }
 
         bytesStr = bytesStr.trim().toUpperCase();
         
-        // Match number and unit
-        Pattern pattern = Pattern.compile("([0-9.]+)\\s*([KMGT]?B)");
+        // Match number and unit (including optional space)
+        Pattern pattern = Pattern.compile("([0-9.]+|NaN)\\s*([KMGT]?B)");
         Matcher matcher = pattern.matcher(bytesStr);
         
         if (!matcher.find()) {
             return 0L;
         }
 
-        double value = Double.parseDouble(matcher.group(1));
+        String valueStr = matcher.group(1);
+        if (valueStr.equalsIgnoreCase("NAN")) {
+            return 0L;
+        }
+        
+        double value = Double.parseDouble(valueStr);
         String unit = matcher.group(2);
 
         return switch (unit) {
@@ -222,4 +253,3 @@ public class TextPlanParser {
         };
     }
 }
-
