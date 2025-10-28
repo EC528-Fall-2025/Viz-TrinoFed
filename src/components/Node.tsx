@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Box, Chip, Typography, Divider } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
-import Modal from './Modal';
 
 import { 
   HourglassBottom, 
@@ -375,7 +374,6 @@ export function QueryRFNode({ data }: { data: { node: QueryNodeData } }) {
         '&:hover': { boxShadow: 6, borderColor: 'primary.main' },
       }}>
       <CopyPaste dataToCopy={n.title ?? n.stage} />
-      <Modal top={0} right={40} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
           {n.title ?? n.stage}

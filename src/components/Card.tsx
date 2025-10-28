@@ -4,7 +4,6 @@ import Typography from '@mui/material/Typography';
 import { HourglassBottom, SentimentVeryDissatisfied, SentimentNeutral, SentimentSatisfiedAlt, Check, QuestionMark, ContentCopy } from '@mui/icons-material';
 import { Chip, Box } from '@mui/material';
 import CopyPaste from './CopyPaste';
-import Modal from './Modal';
 
 export type CardProps = {
   title: string;
@@ -85,7 +84,6 @@ export default function BasicCard({ title, description, status, timestamp, onCli
       }}
       onClick={handleClick}
     >
-      <Modal top={0} right={40} />
       <CopyPaste dataToCopy={title} />
       <CardContent onClick={handleClick}>
         <Box sx={{ ml: 'auto' }}><StatusChip status={status} /></Box>
