@@ -10,7 +10,6 @@ import {
   SentimentNeutral, 
   Check
 } from "@mui/icons-material";
-import CopyPaste from "./CopyPaste";
 
 export const setStatusColor = (state: QueryNodeData['status']) => {
   switch(state) {
@@ -373,7 +372,6 @@ export function QueryRFNode({ data }: { data: { node: QueryNodeData } }) {
         '&:focus-visible': { boxShadow: 6, borderColor: 'primary.dark' },
         '&:hover': { boxShadow: 6, borderColor: 'primary.main' },
       }}>
-      <CopyPaste dataToCopy={n.title ?? n.stage} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
           {n.title ?? n.stage}
