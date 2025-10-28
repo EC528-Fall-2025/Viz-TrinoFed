@@ -1,10 +1,10 @@
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import { HourglassBottom, SentimentVeryDissatisfied, SentimentNeutral, SentimentSatisfiedAlt, Check, QuestionMark, ContentCopy } from '@mui/icons-material';
+import { HourglassBottom, SentimentVeryDissatisfied, SentimentNeutral, SentimentSatisfiedAlt, Check, QuestionMark } from '@mui/icons-material';
 import { Chip, Box } from '@mui/material';
 import CopyPaste from './CopyPaste';
-import Modal from './Modal';
+import { useRef } from 'react';
 
 export type CardProps = {
   title: string;
@@ -61,6 +61,8 @@ export const setStatusColor = (state: CardProps['status']) => {
 
 
 export default function BasicCard({ title, description, status, timestamp, onClick }: CardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  
   const handleClick = () => {
     console.log('Card onClick triggered for:', title);
     if (onClick) {
@@ -70,6 +72,7 @@ export default function BasicCard({ title, description, status, timestamp, onCli
 
   return (
     <Card 
+      ref={cardRef}
       sx={{ 
         minWidth: 275, 
         backgroundColor: setStatusColor(status), 
@@ -85,9 +88,17 @@ export default function BasicCard({ title, description, status, timestamp, onCli
       }}
       onClick={handleClick}
     >
-      <Modal top={0} right={40} />
-      <CopyPaste dataToCopy={title} />
-      <CardContent onClick={handleClick}>
+      <CopyPaste 
+        copyParentContent={true} 
+        parentRef={cardRef}
+        style={{ 
+          position: 'absolute', 
+          top: 8, 
+          left: 8, 
+          zIndex: 10
+        }}
+      />
+      <CardContent onClick={handleClick} sx={{ paddingTop: '40px', paddingBottom: '50px' }}>
         <Box sx={{ ml: 'auto' }}><StatusChip status={status} /></Box>
         <Typography gutterBottom sx={{ color: 'text.secondary', fontSize: 14 }}>
           {title}
