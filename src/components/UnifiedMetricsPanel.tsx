@@ -1,6 +1,7 @@
-import { QueryTree, QueryEvent } from '../types/api.types';
-import { useState, useRef } from 'react';
+import { QueryTree, QueryEvent, AIAnalysisResponse } from '../types/api.types';
+import { useState, useRef, useEffect } from 'react';
 import CopyPaste from './CopyPaste';
+import { apiService } from '../services/api.service';
 
 interface UnifiedMetricsPanelProps {
   query: QueryTree;
@@ -9,11 +10,55 @@ interface UnifiedMetricsPanelProps {
 const UnifiedMetricsPanel = ({ query }: UnifiedMetricsPanelProps) => {
   const [selectedEventIndex, setSelectedEventIndex] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
+  
+  // AI Analysis State
+  const [aiAvailable, setAiAvailable] = useState<boolean>(false);
+  const [aiAnalyzing, setAiAnalyzing] = useState<boolean>(false);
+  const [aiResult, setAiResult] = useState<AIAnalysisResponse | null>(null);
+  const [aiExpanded, setAiExpanded] = useState<boolean>(false);
+
+  // Check AI availability on mount
+  useEffect(() => {
+    const checkAIStatus = async () => {
+      try {
+        const status = await apiService.getAIStatus();
+        setAiAvailable(status.available);
+      } catch (error) {
+        console.error('Error checking AI status:', error);
+        setAiAvailable(false);
+      }
+    };
+    checkAIStatus();
+  }, []);
 
   // Find events with statistics
   const eventsWithStats = query.events?.filter(e => e.statistics) || [];
   const selectedEvent = eventsWithStats.length > 0 ? eventsWithStats[selectedEventIndex] : null;
   const stats = selectedEvent?.statistics as Record<string, any> | null;
+
+  // AI Analysis Handler
+  const handleAnalyzeQuery = async () => {
+    setAiAnalyzing(true);
+    setAiExpanded(true);
+    try {
+      const result = await apiService.analyzeQuery(query.queryId);
+      setAiResult(result);
+    } catch (error) {
+      console.error('Error analyzing query:', error);
+      setAiResult({
+        queryId: query.queryId,
+        originalQuery: query.query,
+        optimizedQuery: null,
+        bottleneckAnalysis: null,
+        suggestions: null,
+        expectedImprovement: null,
+        error: 'Failed to analyze query: ' + (error as Error).message,
+        available: false,
+      });
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
 
   const formatBytes = (bytes: number | null | undefined): string => {
     if (!bytes || bytes === 0) return '0 B';
@@ -565,6 +610,153 @@ const UnifiedMetricsPanel = ({ query }: UnifiedMetricsPanelProps) => {
           </div>
         )
       }
+
+      {/* AI Query Optimization Section */}
+      {renderSection('AI Query Optimization', '🤖',
+        <div>
+          <div style={{ marginBottom: '10px' }}>
+            <button
+              onClick={handleAnalyzeQuery}
+              disabled={!aiAvailable || aiAnalyzing}
+              style={{
+                width: '100%',
+                padding: '10px',
+                backgroundColor: aiAvailable ? '#1971c2' : '#adb5bd',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: aiAvailable ? 'pointer' : 'not-allowed',
+                opacity: aiAnalyzing ? 0.7 : 1,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (aiAvailable && !aiAnalyzing) {
+                  e.currentTarget.style.backgroundColor = '#1864ab';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (aiAvailable) {
+                  e.currentTarget.style.backgroundColor = '#1971c2';
+                }
+              }}
+            >
+              {aiAnalyzing ? '🔄 Analyzing...' : aiAvailable ? '✨ Analyze Query with AI' : '⚠️ AI Feature Not Configured'}
+            </button>
+            {!aiAvailable && (
+              <div style={{
+                fontSize: '10px',
+                color: '#868e96',
+                marginTop: '6px',
+                textAlign: 'center'
+              }}>
+                Configure AWS Bedrock credentials to enable AI analysis
+              </div>
+            )}
+          </div>
+
+          {aiResult && (
+            <div style={{
+              marginTop: '12px',
+              backgroundColor: aiResult.error ? '#ffe3e3' : '#e7f5ff',
+              padding: '10px',
+              borderRadius: '6px',
+              border: `2px solid ${aiResult.error ? '#ff6b6b' : '#1971c2'}`
+            }}>
+              {aiResult.error ? (
+                <div style={{ color: '#c92a2a', fontSize: '11px' }}>
+                  <strong>Error:</strong> {aiResult.error}
+                </div>
+              ) : (
+                <>
+                  {/* Bottleneck Analysis */}
+                  {aiResult.bottleneckAnalysis && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2' }}>
+                        📊 Bottleneck Analysis
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#495057', lineHeight: '1.5' }}>
+                        {aiResult.bottleneckAnalysis}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optimized Query */}
+                  {aiResult.optimizedQuery && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>✨ Optimized Query</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(aiResult.optimizedQuery || '')}
+                          style={{
+                            backgroundColor: 'white',
+                            border: '1px solid #1971c2',
+                            color: '#1971c2',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '9px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                      <div style={{
+                        fontSize: '10px',
+                        fontFamily: 'monospace',
+                        backgroundColor: 'white',
+                        padding: '8px 10px',
+                        borderRadius: '5px',
+                        maxHeight: '150px',
+                        overflow: 'auto',
+                        border: '1px solid #339af0',
+                        color: '#212529',
+                        lineHeight: '1.4'
+                      }}>
+                        {aiResult.optimizedQuery}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggestions */}
+                  {aiResult.suggestions && aiResult.suggestions.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2' }}>
+                        💡 Optimization Suggestions
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '10px', color: '#495057' }}>
+                        {aiResult.suggestions.map((suggestion, idx) => (
+                          <li key={idx} style={{ marginBottom: '4px', lineHeight: '1.5' }}>
+                            {suggestion}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Expected Improvement */}
+                  {aiResult.expectedImprovement && (
+                    <div style={{
+                      backgroundColor: '#d3f9d8',
+                      padding: '8px',
+                      borderRadius: '5px',
+                      borderLeft: '3px solid #51cf66'
+                    }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '4px', color: '#2b8a3e' }}>
+                        🎯 Expected Improvement
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#2b8a3e', lineHeight: '1.5' }}>
+                        {aiResult.expectedImprovement}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Error Section */}
       {query.errorMessage &&
