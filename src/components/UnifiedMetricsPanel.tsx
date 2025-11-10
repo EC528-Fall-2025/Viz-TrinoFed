@@ -1,12 +1,17 @@
+import { QueryTree, QueryEvent, Fragment } from '../types/api.types';
+import { Database, DatabaseSchema, DatabaseTable } from '../types/database.types';
+import { useState } from 'react';
 import { QueryTree, QueryEvent } from '../types/api.types';
 import { useState, useRef } from 'react';
 import CopyPaste from './CopyPaste';
 
 interface UnifiedMetricsPanelProps {
   query: QueryTree;
+  selectedFragment?: Fragment | null;
+  selectedDatabase?: Database | null; // NEW: Prop for selected database
 }
 
-const UnifiedMetricsPanel = ({ query }: UnifiedMetricsPanelProps) => {
+const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: UnifiedMetricsPanelProps) => {
   const [selectedEventIndex, setSelectedEventIndex] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -97,7 +102,7 @@ const UnifiedMetricsPanel = ({ query }: UnifiedMetricsPanelProps) => {
   const duration = formatDuration(query.startTime, query.endTime);
 
   const renderMetricRow = (label: string, value: string | number | null, icon: string = '•') => {
-    if (!value) return null;
+    if (!value && value !== 0) return null; // Allow 0 to be displayed
     return (
       <div style={{
         display: 'flex',
@@ -221,7 +226,7 @@ const UnifiedMetricsPanel = ({ query }: UnifiedMetricsPanelProps) => {
                   <span style={{ color: '#6c757d' }}>Blocked: </span>
                   <span style={{ fontWeight: 'bold' }}>{op.blockedWall ? formatTime(parseFloat(op.blockedWall) / 1000000000) : 'N/A'}</span>
                 </div>
-              </div>
+              </div>:
             </div>
           ))}
         </div>
@@ -259,6 +264,263 @@ const UnifiedMetricsPanel = ({ query }: UnifiedMetricsPanelProps) => {
     );
   };
 
+  // --- 1. Render logic for when a database is selected ---
+  if (selectedDatabase) {
+    const db = selectedDatabase;
+    return (
+      <div style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 10,
+        backgroundColor: 'white',
+        padding: '14px 18px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        minWidth: '400px',
+        maxWidth: '550px',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        fontSize: '12px',
+        borderLeft: `5px solid ${db.status === 'ACTIVE' ? '#51cf66' : '#ff6b6b'}` // Green/Red accent for status
+      }}>
+        {/* Header */}
+        <div style={{
+          fontWeight: 'bold',
+          marginBottom: '12px',
+          fontSize: '17px',
+          color: '#212529',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🗄️</span>
+            <span>Database: {db.name}</span>
+          </div>
+          <span style={{
+            color: db.status === 'ACTIVE' ? '#2b8a3e' : '#c92a2a',
+            fontWeight: 'bold',
+            backgroundColor: db.status === 'ACTIVE' ? '#d3f9d8' : '#ffe3e3',
+            padding: '5px 10px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            display: 'inline-block'
+          }}>
+            {db.status}
+          </span>
+        </div>
+
+        {/* Basic Info */}
+        {renderSection('Details', '📋',
+          <>
+            {renderMetricRow('Type', db.type, '•')}
+            {renderMetricRow('Host', db.host ? `${db.host}:${db.port}` : 'N/A', '•')}
+            {renderMetricRow('Total Queries', db.totalQueries, '•')}
+            {renderMetricRow('Last Seen', formatTimestamp(db.lastSeen), '•')}
+          </>
+        )}
+
+        {/* Schema Details */}
+        {db.schemas && db.schemas.length > 0 && renderSection('Schemas', '🗂️',
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {db.schemas.map((schema: DatabaseSchema) => (
+              <div key={schema.name} style={{ backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '6px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1971c2', marginBottom: '8px' }}>
+                  Schema: {schema.name}
+                </div>
+                {schema.tables && schema.tables.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {schema.tables.map((table: DatabaseTable) => (
+                      <div key={table.name} style={{ backgroundColor: 'white', padding: '8px', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#212529', marginBottom: '6px' }}>
+                          Table: {table.name}
+                        </div>
+                        {table.columns && table.columns.length > 0 ? (
+                          <div style={{ fontFamily: 'monospace', fontSize: '10px', color: '#495057', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {table.columns.map(col => (
+                              <div key={col.name}>
+                                <span>• {col.name}:</span>
+                                <span style={{ color: '#0b7285', marginLeft: '4px' }}>{col.type}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '10px', color: '#6c757d', fontStyle: 'italic' }}>No columns found.</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '11px', color: '#6c757d', fontStyle: 'italic' }}>No tables found in this schema.</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Collection Details (for MongoDB) */}
+        {db.collections && db.collections.length > 0 && renderSection('Collections', '🗂️',
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {db.collections.map((coll) => (
+              <div key={coll.name} style={{ backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '6px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#2b8a3e', marginBottom: '8px' }}>
+                  Collection: {coll.name}
+                </div>
+                {coll.fields && coll.fields.length > 0 ? (
+                  <div style={{ fontFamily: 'monospace', fontSize: '10px', color: '#495057', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {coll.fields.map(field => (
+                      <div key={field.name}>
+                        <span>• {field.name}:</span>
+                        <span style={{ color: '#0b7285', marginLeft: '4px' }}>{field.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '10px', color: '#6c757d', fontStyle: 'italic' }}>No fields found.</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- 2. Render logic for when a fragment is selected ---
+  if (selectedFragment) {
+    const fragment = selectedFragment;
+    return (
+      <div style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 10,
+        backgroundColor: 'white',
+        padding: '14px 18px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        maxWidth: '550px',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        fontSize: '12px',
+        borderLeft: `5px solid #1976d2` // Blue accent for fragment
+      }}>
+        {/* Header */}
+        <div style={{
+          fontWeight: 'bold',
+          marginBottom: '12px',
+          fontSize: '17px',
+          color: '#212529',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🧩</span>
+            <span>Fragment {fragment.fragmentId}</span>
+          </div>
+          <span style={{
+            color: '#1971c2',
+            fontWeight: 'bold',
+            backgroundColor: '#d0ebff',
+            padding: '5px 10px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            display: 'inline-block'
+          }}>
+            {fragment.partitioningType}
+          </span>
+        </div>
+
+        {/* Performance Metrics */}
+        {renderSection('Performance', '⚡',
+          <>
+            {renderMetricRow('CPU Time', fragment.cpuTime, '🖥️')}
+            {renderMetricRow('Scheduled', fragment.scheduledTime, '⏳')}
+            {renderMetricRow('Blocked', fragment.blockedTime, '⏰')}
+            {renderMetricRow('Task Count', fragment.taskCount, '📦')}
+            {renderMetricRow('Peak Memory', fragment.peakMemory, '🧠')}
+          </>
+        )}
+
+        {/* Input Data */}
+        {renderSection('Input', '📊',
+          <>
+            {renderMetricRow('Input Rows', formatNumber(fragment.inputRows), '•')}
+            {renderMetricRow('Input Size', fragment.inputBytes, '•')}
+          </>
+        )}
+
+        {/* Output Data */}
+        {renderSection('Output', '📊',
+          <>
+            {renderMetricRow('Output Rows', formatNumber(fragment.outputRows), '•')}
+            {renderMetricRow('Output Size', fragment.outputBytes, '•')}
+          </>
+        )}
+
+        {/* Operators */}
+        {fragment.operators && fragment.operators.length > 0 &&
+          renderSection(`Operators (${fragment.operators.length})`, '⚙️',
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'monospace',
+              backgroundColor: '#f8f9fa',
+              padding: '8px 10px',
+              borderRadius: '5px',
+              maxHeight: '200px',
+              overflow: 'auto',
+              border: '1px solid #dee2e6',
+              color: '#212529',
+              lineHeight: '1.4',
+              whiteSpace: 'pre'
+            }}>
+              {fragment.operators.join('\n')}
+            </div>
+          )
+        }
+
+        {/* Output Layout */}
+        {fragment.outputLayout &&
+          renderSection('Output Layout', '📋',
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'monospace',
+              backgroundColor: '#f8f9fa',
+              padding: '8px 10px',
+              borderRadius: '5px',
+              border: '1px solid #dee2e6',
+              color: '#212529',
+              wordBreak: 'break-all'
+            }}>
+              {fragment.outputLayout}
+            </div>
+          )
+        }
+
+        {/* Output Partitioning */}
+        {fragment.outputPartitioning &&
+          renderSection('Output Partitioning', '📋',
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'monospace',
+              backgroundColor: '#f8f9fa',
+              padding: '8px 10px',
+              borderRadius: '5px',
+              border: '1px solid #dee2e6',
+              color: '#212529',
+              wordBreak: 'break-all'
+            }}>
+              {fragment.outputPartitioning}
+            </div>
+          )
+        }
+      </div>
+    );
+  }
+
+  // --- 3. DEFAULT: Render query-wide metrics (existing logic) ---
   return (
     <div 
       ref={panelRef}

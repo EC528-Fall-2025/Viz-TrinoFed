@@ -46,4 +46,8 @@ public class QueryTree {
     @JsonProperty("events")
     @Builder.Default
     private List<QueryEvent> events = new ArrayList<>();
+
+    @JsonProperty("fragments")
+    @Builder.Default
+    private List<Fragment> fragments = new ArrayList<>();
 }
