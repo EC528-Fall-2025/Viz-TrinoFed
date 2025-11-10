@@ -1,0 +1,133 @@
+{
+  "0": {
+    "id": "0",
+    "name": "Output",
+    "descriptor": {},
+    "outputs": [
+      {
+        "name": "order_id",
+        "type": "integer"
+      },
+      {
+        "name": "customer_name",
+        "type": "varchar"
+      },
+      {
+        "name": "total_amount",
+        "type": "decimal"
+      }
+    ],
+    "details": [],
+    "estimates": [
+      {
+        "outputRowCount": 5000.0,
+        "outputSizeInBytes": 250000.0,
+        "cpuCost": 300000.0,
+        "memoryCost": 100000.0,
+        "networkCost": 50000.0
+      }
+    ],
+    "children": [
+      {
+        "id": "1",
+        "name": "InnerJoin",
+        "descriptor": {
+          "criteria": "orders.customer_id = customers.id"
+        },
+        "outputs": [
+          {
+            "name": "order_id",
+            "type": "integer"
+          },
+          {
+            "name": "customer_name",
+            "type": "varchar"
+          },
+          {
+            "name": "total_amount",
+            "type": "decimal"
+          }
+        ],
+        "details": [
+          "Join Distribution: PARTITIONED",
+          "Join Type: INNER"
+        ],
+        "estimates": [
+          {
+            "outputRowCount": 5000.0,
+            "outputSizeInBytes": 250000.0,
+            "cpuCost": 300000.0,
+            "memoryCost": 100000.0,
+            "networkCost": 50000.0
+          }
+        ],
+        "children": [
+          {
+            "id": "2",
+            "name": "TableScan",
+            "descriptor": {
+              "table": "postgres:public.orders"
+            },
+            "outputs": [
+              {
+                "name": "order_id",
+                "type": "integer"
+              },
+              {
+                "name": "customer_id",
+                "type": "integer"
+              },
+              {
+                "name": "total_amount",
+                "type": "decimal"
+              }
+            ],
+            "details": [
+              "Layout: postgres:public.orders"
+            ],
+            "estimates": [
+              {
+                "outputRowCount": 5000.0,
+                "outputSizeInBytes": 150000.0,
+                "cpuCost": 150000.0,
+                "memoryCost": 0.0,
+                "networkCost": 0.0
+              }
+            ],
+            "children": []
+          },
+          {
+            "id": "3",
+            "name": "TableScan",
+            "descriptor": {
+              "table": "mongodb:sales.customers"
+            },
+            "outputs": [
+              {
+                "name": "id",
+                "type": "integer"
+              },
+              {
+                "name": "customer_name",
+                "type": "varchar"
+              }
+            ],
+            "details": [
+              "Layout: mongodb:sales.customers"
+            ],
+            "estimates": [
+              {
+                "outputRowCount": 1000.0,
+                "outputSizeInBytes": 50000.0,
+                "cpuCost": 50000.0,
+                "memoryCost": 0.0,
+                "networkCost": 0.0
+              }
+            ],
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

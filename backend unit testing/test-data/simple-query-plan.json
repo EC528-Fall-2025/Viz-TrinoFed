@@ -1,0 +1,60 @@
+{
+  "0": {
+    "id": "0",
+    "name": "Output",
+    "descriptor": {},
+    "outputs": [
+      {
+        "name": "customer_id",
+        "type": "integer"
+      },
+      {
+        "name": "customer_name",
+        "type": "varchar"
+      }
+    ],
+    "details": [],
+    "estimates": [
+      {
+        "outputRowCount": 1000.0,
+        "outputSizeInBytes": 50000.0,
+        "cpuCost": 50000.0,
+        "memoryCost": 0.0,
+        "networkCost": 0.0
+      }
+    ],
+    "children": [
+      {
+        "id": "1",
+        "name": "TableScan",
+        "descriptor": {
+          "table": "postgres:public.customers"
+        },
+        "outputs": [
+          {
+            "name": "customer_id",
+            "type": "integer"
+          },
+          {
+            "name": "customer_name",
+            "type": "varchar"
+          }
+        ],
+        "details": [
+          "Layout: postgres:public.customers",
+          "Estimates: {rows: 1000 (49.99kB), cpu: 49.99k, memory: 0B, network: 0B}"
+        ],
+        "estimates": [
+          {
+            "outputRowCount": 1000.0,
+            "outputSizeInBytes": 50000.0,
+            "cpuCost": 50000.0,
+            "memoryCost": 0.0,
+            "networkCost": 0.0
+          }
+        ],
+        "children": []
+      }
+    ]
+  }
+}
