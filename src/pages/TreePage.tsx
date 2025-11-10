@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ReactFlow, applyNodeChanges, applyEdgeChanges,
@@ -284,12 +284,19 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
   return { nodes: rfNodes, edges: rfEdges };
 }
 
+const getInitialPanelState = () => {
+  if (typeof window === 'undefined') return true;
+  return window.innerWidth > 768;
+};
+
 const TreePage: React.FC = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuery, setCurrentQuery] = useState<QueryTree | null>(null);
+  const [selectedFragmentId, setSelectedFragmentId] = useState<string | null>(null);
+  const [isMetricsPanelOpen, setMetricsPanelOpen] = useState<boolean>(getInitialPanelState);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryId = searchParams.get('queryId');
@@ -352,10 +359,18 @@ const TreePage: React.FC = () => {
           
         // Generate React Flow nodes and edges with databases
         const { nodes: rfNodes, edges: rfEdges } = toReactFlow(nodesToVisualize, databases);
+        const enhancedNodes = rfNodes.map(node =>
+          node.type === 'queryNode'
+            ? { ...node, data: { ...(node.data || {}), onSelect: (fragmentId: string) => {
+                  setSelectedFragmentId(fragmentId);
+                  setMetricsPanelOpen(true);
+                } } }
+            : node
+        );
         
         // Use dagre layout for all trees (ELK has issues with port references)
         // Apply dagre layout to all nodes
-        setNodes(rfNodes);
+        setNodes(enhancedNodes);
         setEdges(rfEdges);
         setError(null);
         setLoading(false);
@@ -398,16 +413,58 @@ const TreePage: React.FC = () => {
 
   const handleBackToLatest = () => {
     navigate('/');
+    setMetricsPanelOpen(true);
   };
+
+  useEffect(() => {
+    const transformGroup = document.querySelector('.react-flow__nodes');
+    if (transformGroup) {
+      transformGroup.classList.add('dag-transform-group');
+    }
+  }, [nodes]);
+
+  const selectedFragment = useMemo(() => {
+    const target = nodes.find(node => node.id === selectedFragmentId);
+    return (target?.data as any)?.node ?? null;
+  }, [nodes, selectedFragmentId]);
 
   // Show initial loading screen only on first load
   if (loading && !currentQuery) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>Loading queries...</div>;
+    return (
+      <div
+        data-testid="loading-spinner"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '18px',
+        }}
+      >
+        Loading queries...
+      </div>
+    );
   }
 
   // Show error only if there's no query data to display
   if (error && !currentQuery) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'red', fontSize: '16px', padding: '20px', textAlign: 'center' }}>{error}</div>;
+    return (
+      <div
+        className="page-level-error"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          color: 'red',
+          fontSize: '16px',
+          padding: '20px',
+          textAlign: 'center',
+        }}
+      >
+        {error}
+      </div>
+    );
   }
 
   return (
@@ -479,7 +536,13 @@ const TreePage: React.FC = () => {
       {/* Always show panels if we have query data */}
       {currentQuery && (
         <>
-          <UnifiedMetricsPanel query={currentQuery} />
+          <UnifiedMetricsPanel
+            query={currentQuery}
+            activeFragment={selectedFragment}
+            isOpen={isMetricsPanelOpen}
+            onClose={() => setMetricsPanelOpen(false)}
+            onOpen={() => setMetricsPanelOpen(true)}
+          />
           <QueryPlanPanel
             events={currentQuery.events || []}
             plan={currentQuery.events?.find(e => e.plan)?.plan}
@@ -487,6 +550,7 @@ const TreePage: React.FC = () => {
         </>
       )}
       <ReactFlow
+        className="dag-canvas"
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
@@ -494,6 +558,20 @@ const TreePage: React.FC = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onInit={onInit}
+        onNodeClick={(_, node) => {
+          const fragmentId = (node.data as any)?.node?.id;
+          if (fragmentId) {
+            setSelectedFragmentId(fragmentId);
+            setMetricsPanelOpen(true);
+          }
+        }}
+        onNodeDoubleClick={(_, node) => {
+          const fragmentId = (node.data as any)?.node?.id;
+          if (fragmentId) {
+            setSelectedFragmentId(fragmentId);
+            setMetricsPanelOpen(true);
+          }
+        }}
         fitView
         fitViewOptions={{
           padding: 0.2,

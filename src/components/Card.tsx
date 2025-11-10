@@ -9,7 +9,7 @@ import { useRef } from 'react';
 export type CardProps = {
   title: string;
   description: string;
-  status: "ok" | "idle" | "failed" | "queued" | "finished" | "unknown";
+  status: "ok" | "idle" | "failed" | "queued" | "finished" | "unknown" | "running";
   timestamp: string;
   onClick?: () => void;
 }
@@ -22,6 +22,8 @@ export const setStatusColor = (state: CardProps['status']) => {
         return '#c60101';
       case 'idle':
         return '#f0e806';
+      case 'running':
+        return '#fdd835';
       case 'ok':
         return '#22c601';
       case 'finished':
@@ -39,6 +41,8 @@ export const setStatusColor = (state: CardProps['status']) => {
         return <SentimentVeryDissatisfied />;
       case 'idle':
         return <SentimentNeutral />;
+      case 'running':
+        return <HourglassBottom />;
       case 'ok':
         return <SentimentSatisfiedAlt/>;
       case 'finished':
@@ -48,15 +52,51 @@ export const setStatusColor = (state: CardProps['status']) => {
     }
   }
 
+const statusClassMap: Record<CardProps['status'], string> = {
+  queued: 'status-queued',
+  failed: 'status-error',
+  idle: 'status-idle',
+  running: 'status-running',
+  ok: 'status-success',
+  finished: 'status-success',
+  unknown: 'status-unknown',
+};
+
+const getStatusClass = (status?: CardProps['status']) =>
+  status ? statusClassMap[status] ?? `status-${status}` : undefined;
+
+const getChipColor = (status: CardProps['status']) => {
+  switch (status) {
+    case 'failed':
+      return 'error';
+    case 'ok':
+    case 'finished':
+      return 'success';
+    case 'running':
+    case 'idle':
+      return 'warning';
+    case 'queued':
+      return 'info';
+    default:
+      return 'default';
+  }
+};
+
  export function StatusChip({ status }: { status?: CardProps["status"] }) {
     if (!status) return null;
-    const color =
-      status === "ok" ? "success" :
-      status === "idle" ? "warning" :
-      status === "failed" ? "error" :
-      "default";
-    const label = status.charAt(0).toUpperCase() + status.slice(1);
-    return <Chip size="small" color={color as any} label={label} sx={{ fontWeight: 600, position: 'absolute', bottom: 10, right: 10, padding:0 }} />;
+    const color = getChipColor(status);
+    const statusClass = getStatusClass(status);
+    const label = status.toUpperCase();
+  return (
+    <Chip
+      size="small"
+      color={color as any}
+      label={label}
+      data-testid="query-status-chip"
+      className={statusClass}
+      sx={{ fontWeight: 600, position: 'absolute', bottom: 10, right: 10, padding: 0 }}
+    />
+  );
   }
 
 
@@ -73,6 +113,8 @@ export default function BasicCard({ title, description, status, timestamp, onCli
   return (
     <Card 
       ref={cardRef}
+      data-testid="query-status-card"
+      className={getStatusClass(status)}
       sx={{ 
         minWidth: 275, 
         backgroundColor: setStatusColor(status), 

@@ -1,0 +1,9 @@
+version: 2
+snapshot:
+  staticSnapshots:
+    baseUrl: http://localhost:6006
+    snapshots:
+      - name: Storybook iframe
+        url: /iframe.html
+      - name: Storybook index
+        url: /index.html
