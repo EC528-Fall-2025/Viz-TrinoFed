@@ -1,6 +1,9 @@
 import { QueryTree, QueryEvent, Fragment } from '../types/api.types';
 import { Database, DatabaseSchema, DatabaseTable } from '../types/database.types';
 import { useState } from 'react';
+import { QueryTree, QueryEvent } from '../types/api.types';
+import { useState, useRef } from 'react';
+import CopyPaste from './CopyPaste';
 
 interface UnifiedMetricsPanelProps {
   query: QueryTree;
@@ -10,6 +13,7 @@ interface UnifiedMetricsPanelProps {
 
 const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: UnifiedMetricsPanelProps) => {
   const [selectedEventIndex, setSelectedEventIndex] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Find events with statistics
   const eventsWithStats = query.events?.filter(e => e.statistics) || [];
@@ -518,36 +522,51 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
 
   // --- 3. DEFAULT: Render query-wide metrics (existing logic) ---
   return (
-    <div style={{
-      position: 'absolute',
-      top: 10,
-      left: 10,
-      zIndex: 10,
-      backgroundColor: 'white',
-      padding: '14px 18px',
-      borderRadius: '12px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-      maxWidth: '550px',
-      maxHeight: '90vh',
-      overflow: 'auto',
-      fontSize: '12px',
-      borderLeft: `5px solid ${
-        query.state === 'FINISHED' ? '#51cf66' :
-        query.errorMessage ? '#ff6b6b' :
-        query.state === 'RUNNING' ? '#ffd43b' : '#74c0fc'
-      }`
-    }}>
+    <div 
+      ref={panelRef}
+      style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 10,
+        backgroundColor: 'white',
+        padding: '14px 18px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        maxWidth: '550px',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        fontSize: '12px',
+        borderLeft: `5px solid ${
+          query.state === 'FINISHED' ? '#51cf66' :
+          query.errorMessage ? '#ff6b6b' :
+          query.state === 'RUNNING' ? '#ffd43b' : '#74c0fc'
+        }`
+      }}
+    >
+      <CopyPaste 
+        copyParentContent={true} 
+        parentRef={panelRef}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          marginLeft: '20px',
+          zIndex: 20
+        }}
+      />
       {/* Header */}
       <div style={{
         fontWeight: 'bold',
         marginBottom: '12px',
+        marginRight: '10px',
         fontSize: '17px',
         color: '#212529',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '10px'}}>
           <span>📊</span>
           <span>Query Metrics & Statistics</span>
         </div>
@@ -563,6 +582,7 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
           padding: '5px 10px',
           borderRadius: '6px',
           fontSize: '11px',
+          margin: '10px',
           display: 'inline-block'
         }}>
           {query.state}

@@ -1,16 +1,17 @@
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import { HourglassBottom, SentimentVeryDissatisfied, SentimentNeutral, SentimentSatisfiedAlt, Check, QuestionMark, ContentCopy } from '@mui/icons-material';
+import { HourglassBottom, SentimentVeryDissatisfied, SentimentNeutral, SentimentSatisfiedAlt, Check, QuestionMark } from '@mui/icons-material';
 import { Chip, Box } from '@mui/material';
 import CopyPaste from './CopyPaste';
-import Modal from './Modal';
+import { useRef } from 'react';
 
 export type CardProps = {
   title: string;
   description: string;
   status: "ok" | "idle" | "failed" | "queued" | "finished" | "unknown";
   timestamp: string;
+  onClick?: () => void;
 }
 
 export const setStatusColor = (state: CardProps['status']) => {
@@ -59,12 +60,45 @@ export const setStatusColor = (state: CardProps['status']) => {
   }
 
 
-export default function BasicCard({ title, description, status, timestamp }: CardProps) {
+export default function BasicCard({ title, description, status, timestamp, onClick }: CardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  const handleClick = () => {
+    console.log('Card onClick triggered for:', title);
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
-    <Card sx={{ minWidth: 275, backgroundColor: setStatusColor(status), position: 'relative', borderRadius: 0 }}>
-      <Modal top={0} right={40} />
-      <CopyPaste dataToCopy={title} />
-      <CardContent>
+    <Card 
+      ref={cardRef}
+      sx={{ 
+        minWidth: 275, 
+        backgroundColor: setStatusColor(status), 
+        position: 'relative', 
+        borderRadius: 0,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s ease',
+        '&:hover': onClick ? {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+          borderColor: '#1976d2'
+        } : {}
+      }}
+      onClick={handleClick}
+    >
+      <CopyPaste 
+        copyParentContent={true} 
+        parentRef={cardRef}
+        style={{ 
+          position: 'absolute', 
+          top: 8, 
+          left: 8, 
+          zIndex: 10
+        }}
+      />
+      <CardContent onClick={handleClick} sx={{ paddingTop: '40px', paddingBottom: '50px' }}>
         <Box sx={{ ml: 'auto' }}><StatusChip status={status} /></Box>
         <Typography gutterBottom sx={{ color: 'text.secondary', fontSize: 14 }}>
           {title}

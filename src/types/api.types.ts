@@ -41,6 +41,7 @@ export interface QueryEvent {
   plan: string | null;
   errorCode: string | null;
   errorMessage: string | null;
+  statistics?: Record<string, any> | null;
 }
 
 export interface Fragment {

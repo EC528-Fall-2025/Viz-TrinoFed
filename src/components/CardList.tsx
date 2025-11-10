@@ -11,7 +11,14 @@ export default function CardList({ cards }: CardListProps) {
             <ul>
                 {cards.map((card, index) => (
                     <li key={index}>
-                        <BasicCard key={index} title={card.title} description={card.description} status={card.status} timestamp={card.timestamp} />
+                        <BasicCard 
+                            key={index} 
+                            title={card.title} 
+                            description={card.description} 
+                            status={card.status} 
+                            timestamp={card.timestamp}
+                            onClick={card.onClick}
+                        />
                     </li>
                 ))}
             </ul>
