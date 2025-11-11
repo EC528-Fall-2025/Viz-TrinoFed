@@ -3,7 +3,6 @@ import { Box, Typography } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
 import { Check, Output as OutputIcon } from "@mui/icons-material";
 import CopyPaste from "./CopyPaste";
-import Modal from './Modal';
 
 interface OutputNodeProps {
   data: {
@@ -37,7 +36,6 @@ export function OutputNode({ data }: OutputNodeProps) {
       }}
     >
       <CopyPaste dataToCopy="Query Output" />
-      <Modal top={0} right={40} />
       
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>

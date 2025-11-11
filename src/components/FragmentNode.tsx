@@ -2,7 +2,6 @@ import * as React from "react";
 import { Box, Chip, Typography, Divider } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
 import { Fragment } from '../types/api.types';
-import Modal from './Modal';
 import CopyPaste from "./CopyPaste";
 import { 
   HourglassBottom, 
@@ -85,7 +84,6 @@ export function FragmentNode({ data }: FragmentNodeProps) {
       }}
     >
       <CopyPaste dataToCopy={`Fragment ${fragment.fragmentId} [${fragment.partitioningType}]`} />
-      <Modal top={0} right={40} />
       
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
