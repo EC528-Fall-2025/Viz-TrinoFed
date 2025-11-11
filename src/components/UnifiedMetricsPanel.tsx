@@ -1,7 +1,5 @@
 import { QueryTree, QueryEvent, Fragment } from '../types/api.types';
 import { Database, DatabaseSchema, DatabaseTable } from '../types/database.types';
-import { useState } from 'react';
-import { QueryTree, QueryEvent } from '../types/api.types';
 import { useState, useRef } from 'react';
 import CopyPaste from './CopyPaste';
 
