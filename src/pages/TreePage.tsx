@@ -186,12 +186,15 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
   const rfEdges: Edge[] = [];
   const seen = new Set<string>();
 
-  // Add database nodes
+  // Add database nodes in a vertical column
+  const DB_VERTICAL_SPACING = 250; // Space between database nodes
+  const DB_START_Y = 0; // Starting Y position for database nodes
+  
   databases.forEach((db, index) => {
     rfNodes.push({
       id: `db_${db.id}`,
       type: 'databaseNode',
-      position: { x: -500, y: index * (DB_NODE_H + 50) },
+      position: { x: -600, y: DB_START_Y + (index * DB_VERTICAL_SPACING) },
       data: { ...db, label: db.name },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
@@ -216,19 +219,29 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
 
   nodes.forEach(addNode);
 
-  // Connect databases to query nodes - fix to connect to left side
+  // Find the first non-database node (entry point to the query processing)
   const queryNodes = rfNodes.filter(n => n.type === 'queryNode');
-  const firstQueryNode = queryNodes[0];
+  const allQueryIds = new Set(queryNodes.map(n => n.id));
   
-  if (firstQueryNode) {
-    databases.forEach(db => {
-      // Connect database right handle to query node left handle
+  // A node is a "first node" if it's not referenced as a child or next node by any other node
+  const firstNodes = queryNodes.filter(qn => {
+    const isChild = nodes.some(n => n.children?.some(c => c.id === qn.id));
+    const isNext = nodes.some(n => n.next?.id === qn.id);
+    return !isChild && !isNext;
+  });
+
+  // If no clear first nodes, use the first query node
+  const targetNodes = firstNodes.length > 0 ? firstNodes : (queryNodes.length > 0 ? [queryNodes[0]] : []);
+  
+  // Connect ALL database nodes to ALL first non-database nodes
+  databases.forEach(db => {
+    targetNodes.forEach(targetNode => {
       rfEdges.push({
-        id: `db_${db.id}__to__${firstQueryNode.id}`,
+        id: `db_${db.id}__to__${targetNode.id}`,
         source: `db_${db.id}`,
-        sourceHandle: 'right', // Use right handle from database
-        target: firstQueryNode.id,
-        targetHandle: 'in', // Use left handle on query node
+        sourceHandle: 'right',
+        target: targetNode.id,
+        targetHandle: 'in',
         type: 'directed',
         style: { 
           stroke: '#6c757d', 
@@ -243,7 +256,7 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
         },
       });
     });
-  }
+  });
 
   // Child edges: parent -> child (top→bottom handles)
   const addChildEdges = (n: QueryNodeData) => {
@@ -295,24 +308,83 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
   const rfNodes: Node[] = [];
   const rfEdges: Edge[] = [];
 
-  // Add database nodes
+  // Add database nodes in a vertical column (far left)
+  const DB_VERTICAL_SPACING = 250;
+  const DB_START_Y = 0;
+  
   databases.forEach((db, index) => {
     rfNodes.push({
       id: `db_${db.id}`,
       type: 'databaseNode',
-      position: { x: -500, y: index * (DB_NODE_H + 50) },
+      position: { x: -600, y: DB_START_Y + (index * DB_VERTICAL_SPACING) },
       data: { ...db, label: db.name },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
     });
   });
 
-  // Add fragment nodes (fragments are already sorted in descending order from backend)
-  fragments.forEach((fragment, index) => {
+  // Sort fragments by fragmentId in descending order (Trino convention: higher IDs = sources)
+  const sortedFragments = [...fragments].sort((a, b) => b.fragmentId - a.fragmentId);
+  
+  // Identify source fragments: fragments that read directly from tables
+  // These typically have SOURCE or SCAN partitioning and are leaf nodes
+  const sourceFragments = sortedFragments.filter(f => 
+    f.partitioningType === 'SOURCE' || 
+    f.partitioningType?.includes('SCAN') ||
+    // Also check if operators contain TableScan or similar
+    f.operators?.some(op => 
+      op.operatorType?.includes('TableScan') || 
+      op.operatorType?.includes('Scan') ||
+      op.operatorType?.includes('Source')
+    )
+  );
+  
+  const nonSourceFragments = sortedFragments.filter(f => !sourceFragments.includes(f));
+
+  // Fallback: if no source fragments detected via partitioning/operators,
+  // use fragments with highest IDs as sources
+  if (sourceFragments.length === 0 && sortedFragments.length > 0) {
+    const maxFragmentId = Math.max(...sortedFragments.map(f => f.fragmentId));
+    sourceFragments.push(...sortedFragments.filter(f => f.fragmentId === maxFragmentId));
+    nonSourceFragments.splice(0, nonSourceFragments.length, 
+      ...sortedFragments.filter(f => f.fragmentId !== maxFragmentId));
+  }
+
+  console.log('Source Fragments:', sourceFragments.map(f => ({ id: f.fragmentId, type: f.partitioningType })));
+  console.log('Non-Source Fragments:', nonSourceFragments.map(f => ({ id: f.fragmentId, type: f.partitioningType })));
+
+  // Layout source fragments VERTICALLY (middle column)
+  const SOURCE_VERTICAL_SPACING = 200;
+  const SOURCE_START_X = -50;
+  const SOURCE_START_Y = 0;
+  
+  sourceFragments.forEach((fragment, index) => {
     rfNodes.push({
       id: `fragment_${fragment.fragmentId}`,
       type: 'fragmentNode',
-      position: { x: 0, y: 0 }, // Will be positioned by dagre
+      position: { 
+        x: SOURCE_START_X, 
+        y: SOURCE_START_Y + (index * SOURCE_VERTICAL_SPACING)
+      },
+      data: { fragment },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+  });
+
+  // Layout non-source fragments HORIZONTALLY (right side)
+  const NON_SOURCE_HORIZONTAL_SPACING = 400;
+  const NON_SOURCE_START_X = 400;
+  const NON_SOURCE_Y = SOURCE_START_Y + ((sourceFragments.length - 1) * SOURCE_VERTICAL_SPACING) / 2;
+  
+  nonSourceFragments.forEach((fragment, index) => {
+    rfNodes.push({
+      id: `fragment_${fragment.fragmentId}`,
+      type: 'fragmentNode',
+      position: { 
+        x: NON_SOURCE_START_X + (index * NON_SOURCE_HORIZONTAL_SPACING), 
+        y: NON_SOURCE_Y
+      },
       data: { fragment },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
@@ -325,18 +397,21 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
   // Parse output columns from Fragment 0's outputLayout
   let outputColumns: string[] = [];
   if (fragment0?.outputLayout) {
-    // Parse output layout like "[l_returnflag, count]" or "l_returnflag:varchar(1), count:bigint"
     outputColumns = fragment0.outputLayout
       .split(',')
       .map(col => col.trim().split(':')[0].replace(/[\[\]]/g, '').trim())
       .filter(col => col.length > 0);
   }
 
-  // Add output node after Fragment 0
+  // Add output node at the end of the horizontal chain
+  const OUTPUT_X = NON_SOURCE_START_X + (nonSourceFragments.length * NON_SOURCE_HORIZONTAL_SPACING);
   rfNodes.push({
     id: 'output_node',
     type: 'outputNode',
-    position: { x: 0, y: 0 }, // Will be positioned by dagre
+    position: { 
+      x: OUTPUT_X, 
+      y: NON_SOURCE_Y
+    },
     data: {
       queryId: queryTree.queryId,
       query: queryTree.query,
@@ -350,10 +425,28 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
     targetPosition: Position.Left,
   });
 
-  // Create sequential edges between fragments (descending order: highest -> lowest)
-  for (let i = 0; i < fragments.length - 1; i++) {
-    const currentFragment = fragments[i];
-    const nextFragment = fragments[i + 1];
+  // Connect ALL source fragments' RIGHT edges to FIRST non-source fragment's LEFT edge
+  const firstNonSourceFragment = nonSourceFragments.length > 0 ? nonSourceFragments[0] : fragment0;
+  
+  if (firstNonSourceFragment) {
+    sourceFragments.forEach(sourceFragment => {
+      rfEdges.push({
+        id: `fragment_${sourceFragment.fragmentId}_to_${firstNonSourceFragment.fragmentId}`,
+        source: `fragment_${sourceFragment.fragmentId}`,
+        sourceHandle: 'out',
+        target: `fragment_${firstNonSourceFragment.fragmentId}`,
+        targetHandle: 'in',
+        type: 'directed',
+        style: { stroke: '#1976d2', strokeWidth: 3 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#1976d2', width: 20, height: 20 },
+      });
+    });
+  }
+
+  // Create sequential edges between NON-SOURCE fragments (horizontal flow: left to right)
+  for (let i = 0; i < nonSourceFragments.length - 1; i++) {
+    const currentFragment = nonSourceFragments[i];
+    const nextFragment = nonSourceFragments[i + 1];
     
     rfEdges.push({
       id: `fragment_${currentFragment.fragmentId}_to_${nextFragment.fragmentId}`,
@@ -367,11 +460,13 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
     });
   }
 
-  // Connect Fragment 0 to Output Node
-  if (fragment0) {
+  // Connect last non-source fragment to Output Node
+  const lastNonSourceFragment = nonSourceFragments.length > 0 ? nonSourceFragments[nonSourceFragments.length - 1] : null;
+  
+  if (lastNonSourceFragment) {
     rfEdges.push({
-      id: 'fragment_0_to_output',
-      source: `fragment_${fragment0.fragmentId}`,
+      id: `fragment_${lastNonSourceFragment.fragmentId}_to_output`,
+      source: `fragment_${lastNonSourceFragment.fragmentId}`,
       sourceHandle: 'out',
       target: 'output_node',
       targetHandle: 'in',
@@ -379,18 +474,29 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
       style: { stroke: '#2e7d32', strokeWidth: 3 },
       markerEnd: { type: MarkerType.ArrowClosed, color: '#2e7d32', width: 20, height: 20 },
     });
+  } else if (fragment0 && sourceFragments.length > 0) {
+    sourceFragments.forEach(sourceFragment => {
+      rfEdges.push({
+        id: `fragment_${sourceFragment.fragmentId}_to_output`,
+        source: `fragment_${sourceFragment.fragmentId}`,
+        sourceHandle: 'out',
+        target: 'output_node',
+        targetHandle: 'in',
+        type: 'directed',
+        style: { stroke: '#2e7d32', strokeWidth: 3 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#2e7d32', width: 20, height: 20 },
+      });
+    });
   }
 
-  // Connect database nodes to the highest fragment ID (leaf fragments)
-  if (fragments.length > 0) {
-    const highestFragment = fragments[0]; // Already sorted in descending order
-    
-    databases.forEach(db => {
+  // Connect database nodes ONLY to source fragments (horizontal connections)
+  databases.forEach(db => {
+    sourceFragments.forEach(sourceFragment => {
       rfEdges.push({
-        id: `db_${db.id}_to_fragment_${highestFragment.fragmentId}`,
+        id: `db_${db.id}_to_fragment_${sourceFragment.fragmentId}`,
         source: `db_${db.id}`,
         sourceHandle: 'right',
-        target: `fragment_${highestFragment.fragmentId}`,
+        target: `fragment_${sourceFragment.fragmentId}`,
         targetHandle: 'in',
         type: 'directed',
         style: { 
@@ -406,31 +512,6 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
         },
       });
     });
-  }
-
-  // Layout with dagre for fragment and output nodes
-  const layoutNodes = rfNodes.filter(n => n.type === 'fragmentNode' || n.type === 'outputNode');
-  const layoutEdges = rfEdges.filter(e => 
-    layoutNodes.some(n => n.id === e.source) && 
-    layoutNodes.some(n => n.id === e.target)
-  );
-  
-  // Apply dagre layout
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'LR', nodesep: 100, ranksep: 200 });
-  g.setDefaultEdgeLabel(() => ({}));
-  layoutNodes.forEach(n => {
-    const width = n.type === 'outputNode' ? OUTPUT_NODE_W : FRAGMENT_NODE_W;
-    const height = n.type === 'outputNode' ? OUTPUT_NODE_H : FRAGMENT_NODE_H;
-    g.setNode(n.id, { width, height });
-  });
-  layoutEdges.forEach(e => g.setEdge(e.source, e.target));
-  dagre.layout(g);
-  layoutNodes.forEach(n => {
-    const p = g.node(n.id);
-    const width = n.type === 'outputNode' ? OUTPUT_NODE_W : FRAGMENT_NODE_W;
-    const height = n.type === 'outputNode' ? OUTPUT_NODE_H : FRAGMENT_NODE_H;
-    n.position = { x: p.x - width / 2, y: p.y - height / 2 };
   });
 
   return { nodes: rfNodes, edges: rfEdges };

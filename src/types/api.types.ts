@@ -81,4 +81,3 @@ export interface QueryTree {
   events: QueryEvent[];
   fragments: Fragment[];
 }
-
