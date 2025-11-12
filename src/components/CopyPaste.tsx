@@ -36,6 +36,7 @@ export default function CopyPaste ({ dataToCopy, copyParentContent = false, pare
   return (
       <div
         onClick={handleCopy} 
+        role="button"
         style={{ 
           position: 'absolute', 
           top: 10, 
@@ -47,7 +48,7 @@ export default function CopyPaste ({ dataToCopy, copyParentContent = false, pare
           ...style
         }}
       >
-        {copied ? '✓' : <ContentCopy sx={{ width: '18px', height: '18px' }} />}
+        {copied ? '✓' : <ContentCopy sx={{ width: '18px', height: '18px' }} data-testid="copy-success-icon"/>}
       </div>
   );
 };

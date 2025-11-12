@@ -53,6 +53,7 @@ export default function DirectedEdge(props: EdgeProps) {
       {label && (
         <EdgeLabelRenderer>
           <div
+          data-testid="directed-edge"
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
