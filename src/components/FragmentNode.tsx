@@ -62,6 +62,8 @@ export function FragmentNode({ data }: FragmentNodeProps) {
         e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
       }}
     >
+      <CopyPaste dataToCopy={`Fragment ${fragment.fragmentId} [${fragment.partitioningType}]`} />
+      
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

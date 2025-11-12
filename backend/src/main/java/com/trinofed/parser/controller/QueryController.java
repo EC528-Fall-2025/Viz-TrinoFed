@@ -12,7 +12,11 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/queries")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://[::1]:5173"
+})
 public class QueryController {
 
     private final QueryEventService queryEventService;

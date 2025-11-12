@@ -47,6 +47,7 @@ const QueryNode = memo(({ data }: QueryNodeProps) => {
 
   return (
     <div
+      data-testid="query-node"
       style={{
         padding: '14px 18px',
         borderRadius: '10px',

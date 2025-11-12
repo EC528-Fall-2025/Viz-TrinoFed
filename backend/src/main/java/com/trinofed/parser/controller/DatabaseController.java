@@ -15,7 +15,11 @@ import java.util.HashMap;
 @Slf4j
 @RestController
 @RequestMapping("/api/databases")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://[::1]:5173"
+})
 public class DatabaseController {
 
     private final DatabaseCatalogService databaseCatalogService;

@@ -8,9 +8,13 @@ export type CardListProps = {
 export default function CardList({ cards }: CardListProps) {
     return (
         <Box>
-            <ul>
+            <ul className="history-list">
                 {cards.map((card, index) => (
-                    <li key={index}>
+                    <li
+                        key={index}
+                        className="history-list-item"
+                        data-query-id={card.title}
+                    >
                         <BasicCard 
                             key={index} 
                             title={card.title} 

@@ -1,0 +1,62 @@
+{
+  "queryId": "1",
+  "query": "SELECT * FROM demo_table",
+  "user": "ci-user",
+  "state": "FINISHED",
+  "startTime": "2024-05-01T12:00:00.000Z",
+  "endTime": "2024-05-01T12:00:05.000Z",
+  "totalExecutionTime": 5000,
+  "errorMessage": null,
+  "root": {
+    "id": "fragment-1",
+    "queryId": "1",
+    "nodeType": "FRAGMENT",
+    "operatorType": "Single Fragment",
+    "sourceSystem": "Trino",
+    "state": "FINISHED",
+    "executionTime": 500,
+    "inputRows": 1000,
+    "outputRows": 1000,
+    "inputBytes": null,
+    "outputBytes": null,
+    "cpuTime": null,
+    "wallTime": null,
+    "memoryBytes": null,
+    "errorMessage": null,
+    "warnings": [],
+    "metadata": {},
+    "children": [],
+    "parentId": null
+  },
+  "events": [
+    {
+      "queryId": "1",
+      "eventType": "Execution",
+      "timestamp": "2024-05-01T12:00:00.000Z",
+      "query": "SELECT * FROM demo_table",
+      "state": "FINISHED",
+      "user": "ci-user",
+      "source": "trino-cli",
+      "catalog": "sales",
+      "schema": "analytics",
+      "executionTime": 5,
+      "cpuTimeMs": 1250,
+      "wallTimeMs": 5000,
+      "queuedTimeMs": 200,
+      "peakMemoryBytes": 2684354560,
+      "totalBytes": 11274289152,
+      "totalRows": 2400000,
+      "completedSplits": 48,
+      "plan": "plan text",
+      "errorCode": null,
+      "errorMessage": null,
+      "statistics": {
+        "cpuTime": 1.25,
+        "wallTime": 5,
+        "queuedTime": 0.2,
+        "peakUserMemoryBytes": 2684354560,
+        "totalDrivers": 16
+      }
+    }
+  ]
+}
