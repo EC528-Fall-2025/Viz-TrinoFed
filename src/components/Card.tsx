@@ -16,7 +16,7 @@ import { useRef } from 'react';
 export type CardProps = {
   title: string;
   description: string;
-  status: 'ok' | 'idle' | 'failed' | 'queued' | 'finished' | 'unknown';
+  status: "ok" | "idle" | "failed" | "queued" | "finished" | "unknown" | "running";
   timestamp: string;
   onClick?: () => void;
 };

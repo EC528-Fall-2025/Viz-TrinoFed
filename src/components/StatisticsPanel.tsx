@@ -194,7 +194,8 @@ const StatisticsPanel = ({ query }: StatisticsPanelProps) => {
       maxHeight: '85vh',
       overflow: 'auto',
       fontSize: '12px',
-      borderRight: '5px solid #1971c2'
+      borderRight: '5px solid #1971c2',
+      marginRight: '60px' // Add margin to avoid zoom controls
     }}>
       {/* Header */}
       <div style={{

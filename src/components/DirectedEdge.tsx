@@ -8,7 +8,7 @@ import {
 
 function pointsToPath(points: { x: number; y: number }[]): string {
   if (!points.length) return '';
-  const [start, ...rest] = points;
+  const [start] = points;
   return `M ${start.x},${start.y} ` + points.slice(1).map((p) => `L ${p.x},${p.y}`).join(' ');
 }
 
@@ -21,7 +21,7 @@ export default function DirectedEdge(props: EdgeProps) {
     const path = pointsToPath(bendPoints);
     return (
       <>
-        <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
+        <BaseEdge id={id} className="dag-edge" path={path} markerEnd={markerEnd} style={style} />
         {label && (
           <EdgeLabelRenderer>
             <div
@@ -49,10 +49,11 @@ export default function DirectedEdge(props: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath(props);
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
+      <BaseEdge id={id} className="dag-edge" path={edgePath} markerEnd={markerEnd} style={style} />
       {label && (
         <EdgeLabelRenderer>
           <div
+          data-testid="directed-edge"
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,

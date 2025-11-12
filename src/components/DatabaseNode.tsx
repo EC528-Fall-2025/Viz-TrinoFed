@@ -55,6 +55,7 @@ const DatabaseNode = memo(({ data }: DatabaseNodeProps) => {
 
   return (
     <div
+      data-testid="database-node"
       style={{
         padding: '16px 20px',
         borderRadius: '12px',

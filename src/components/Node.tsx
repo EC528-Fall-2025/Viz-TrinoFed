@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Box, Chip, Typography, Divider } from "@mui/material";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 import { 
   HourglassBottom, 
@@ -226,8 +226,8 @@ export function QueryNode({
   defaultOpen = false,
 }: QueryNodeData) {
   return (
-    <Box component="li" sx={{ listStyle: "none", pl: 1 }}>
-      <Box component="details" open={defaultOpen} sx={{
+    <Box component="li" className="query-node-item" data-testid={`query-node-${id}`} sx={{ listStyle: "none", pl: 1 }}>
+      <Box component="details" className="query-node-card" open={defaultOpen} sx={{
         bgcolor: "background.paper",
         border: 1,
         borderColor: "divider",
@@ -235,7 +235,7 @@ export function QueryNode({
         p: 1.25,
         '&[open]': { boxShadow: 1 },
       }}>      
-        <Box component="summary" sx={{
+        <Box component="summary" className="query-node-summary" sx={{
           listStyle: "none",
           cursor: "pointer",
           display: "flex",
@@ -293,7 +293,7 @@ export function QueryNode({
         </Box>
 
         {/* Body */}
-        <Box sx={{ mt: 1.25 }}>
+        <Box className="query-node-body" sx={{ mt: 1.25 }}>
           {/* Identity row */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>ID:</Typography>
@@ -314,7 +314,7 @@ export function QueryNode({
           {children && children.length > 0 && (
             <>
               <Divider sx={{ my: 1.25 }} />
-              <Box component="ul" sx={{
+              <Box component="ul" className="query-node-children" sx={{
                 pl: 2,
                 m: 0,
                 display: "grid",
@@ -339,13 +339,13 @@ export function QueryNode({
 // -----------------------------
 export function QueryTree({ nodes }: { nodes: QueryNodeData[] }) {
   return (
-    <Box component="ul" sx={{
+    <Box component="ul" className="dag-node-list" sx={{
       m: 0,
       p: 0,
       display: "grid",
       gap: 1,
     }}>
-      {nodes.map(n => (
+      {nodes.map((n) => (
         <QueryNode key={n.id} {...n} />
       ))}
     </Box>
@@ -353,12 +353,36 @@ export function QueryTree({ nodes }: { nodes: QueryNodeData[] }) {
 }
 
 
-export function QueryRFNode({ data }: { data: { node: QueryNodeData } }) {
+export function QueryRFNode(props: NodeProps) {
+  const { data: rawData, selected } = props;
+  const data = rawData as { node: QueryNodeData; onSelect?: (id: string) => void };
   const n = data.node;
   const hasMetrics = n.metrics && n.metrics.length > 0;
+  const testId = n.id ? `node-${n.id}` : 'node-unknown';
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      data.onSelect?.(n.id);
+    }
+  };
+
+  const handleSelect = () => {
+    data.onSelect?.(n.id);
+  };
   
+  const statusClass = n.status === 'failed' ? ' node-error' : '';
+
   return (
-    <Box role="group" aria-label={`${n.stage} ${n.title ?? ''}`} tabIndex={0}
+    <Box
+      role="group"
+      aria-label={`${n.stage} ${n.title ?? ''}`}
+      tabIndex={0}
+      className={`dag-node${selected ? ' selected' : ''}${statusClass}`}
+      data-testid={testId}
+      onClick={handleSelect}
+      onDoubleClick={handleSelect}
+      onKeyDown={handleKeyDown}
       sx={{
         width: 300, 
         maxHeight: 450, 
@@ -377,7 +401,7 @@ export function QueryRFNode({ data }: { data: { node: QueryNodeData } }) {
           {n.title ?? n.stage}
         </Typography>
         {setStatusIcon(n.status)}
-        <Box sx={{ ml: 'auto' }}>{ StatusChip({ status: n.status })}</Box>
+        <Box sx={{ ml: 'auto' }}><StatusChip status={n.status} /></Box>
       </Box>
       {n.connector && (
         <Typography variant="body2" sx={{ color: '#555', display: 'block', mb: 1, fontWeight: 500 }}>
@@ -411,7 +435,7 @@ export function QueryRFNode({ data }: { data: { node: QueryNodeData } }) {
         <>
           <Divider sx={{ my: 1.5, borderColor: '#ccc' }} />
           <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 2, rowGap: 0.75 }}>
-            {n.metrics!.slice(0, 6).map((metric, idx) => (
+            {n.metrics!.slice(0, 6).map((metric: QueryMetric, idx: number) => (
               <React.Fragment key={idx}>
                 <Box component="dt" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#333' }}>
                   {metric.label}:
@@ -439,6 +463,3 @@ export function QueryRFNode({ data }: { data: { node: QueryNodeData } }) {
     </Box>
   );
 }
-
-
-

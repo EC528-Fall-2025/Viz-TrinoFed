@@ -1,26 +1,34 @@
-import { QueryTree, QueryEvent, AIAnalysisResponse } from '../types/api.types';
-import { useState, useRef, useEffect } from 'react';
-import { QueryTree, QueryEvent, Fragment } from '../types/api.types';
+import { QueryTree, QueryEvent, AIAnalysisResponse, Fragment } from '../types/api.types';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Database, DatabaseSchema, DatabaseTable } from '../types/database.types';
-import { useState, useRef } from 'react';
 import CopyPaste from './CopyPaste';
 import { apiService } from '../services/api.service';
+import { OperatorTree } from './OperatorTree';
 
 interface UnifiedMetricsPanelProps {
   query: QueryTree;
   selectedFragment?: Fragment | null;
-  selectedDatabase?: Database | null; // NEW: Prop for selected database
+  selectedDatabase?: Database | null;
+  isOpen?: boolean;
+  onClose?: () => void;
+  onOpen?: () => void;
 }
 
-const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: UnifiedMetricsPanelProps) => {
-  const [selectedEventIndex, setSelectedEventIndex] = useState(0);
+const MOBILE_BREAKPOINT = 768;
+
+const UnifiedMetricsPanel = ({ 
+  query, 
+  selectedFragment, 
+  selectedDatabase,
+}: UnifiedMetricsPanelProps) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [selectedEventIndex, setSelectedEventIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   
   // AI Analysis State
   const [aiAvailable, setAiAvailable] = useState<boolean>(false);
   const [aiAnalyzing, setAiAnalyzing] = useState<boolean>(false);
   const [aiResult, setAiResult] = useState<AIAnalysisResponse | null>(null);
-  const [aiExpanded, setAiExpanded] = useState<boolean>(false);
 
   // Check AI availability on mount
   useEffect(() => {
@@ -36,73 +44,35 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
     checkAIStatus();
   }, []);
 
-  // Find events with statistics
-  const eventsWithStats = query.events?.filter(e => e.statistics) || [];
-  const selectedEvent = eventsWithStats.length > 0 ? eventsWithStats[selectedEventIndex] : null;
-  const stats = selectedEvent?.statistics as Record<string, any> | null;
-
-  // AI Analysis Handler
-  const handleAnalyzeQuery = async () => {
-    setAiAnalyzing(true);
-    setAiExpanded(true);
-    try {
-      const result = await apiService.analyzeQuery(query.queryId);
-      setAiResult(result);
-    } catch (error) {
-      console.error('Error analyzing query:', error);
-      setAiResult({
-        queryId: query.queryId,
-        originalQuery: query.query,
-        optimizedQuery: null,
-        bottleneckAnalysis: null,
-        suggestions: null,
-        expectedImprovement: null,
-        error: 'Failed to analyze query: ' + (error as Error).message,
-        available: false,
-      });
-    } finally {
-      setAiAnalyzing(false);
+  // Mobile detection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+    const update = (matches: boolean) => setIsMobile(matches);
+    update(mq.matches);
+    const listener = (event: MediaQueryListEvent) => update(event.matches);
+    if (mq.addEventListener) {
+      mq.addEventListener('change', listener);
+      return () => mq.removeEventListener('change', listener);
     }
-  };
+    mq.addListener(listener);
+    return () => mq.removeListener(listener);
+  }, []);
 
-  const formatBytes = (bytes: number | null | undefined): string => {
-    if (!bytes || bytes === 0) return '0 B';
-    const kb = bytes / 1024;
-    if (kb < 1024) return `${kb.toFixed(2)} KB`;
-    const mb = kb / 1024;
-    if (mb < 1024) return `${mb.toFixed(2)} MB`;
-    const gb = mb / 1024;
-    return `${gb.toFixed(2)} GB`;
-  };
+  // Find events with statistics
+  const eventsWithStats = useMemo(
+    () => query.events?.filter((event) => event.statistics) ?? [],
+    [query.events]
+  );
 
-  const formatNumber = (num: number | null | undefined): string => {
-    if (!num && num !== 0) return 'N/A';
-    return num.toLocaleString();
-  };
+  useEffect(() => {
+    if (selectedEventIndex >= eventsWithStats.length) {
+      setSelectedEventIndex(0);
+    }
+  }, [eventsWithStats, selectedEventIndex]);
 
-  const formatTime = (time: number | null | undefined): string => {
-    if (!time && time !== 0) return 'N/A';
-    if (time < 1) return `${(time * 1000).toFixed(2)} ms`;
-    if (time < 60) return `${time.toFixed(2)} s`;
-    const minutes = Math.floor(time / 60);
-    const seconds = (time % 60).toFixed(2);
-    return `${minutes}m ${seconds}s`;
-  };
-
-  const formatTimestamp = (timestamp: string | null | undefined): string | null => {
-    if (!timestamp) return null;
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-
-  const formatDuration = (start: string | null | undefined, end: string | null | undefined): string | null => {
-    if (!start || !end) return null;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const durationMs = endDate.getTime() - startDate.getTime();
-    if (durationMs < 1000) return `${durationMs}ms`;
-    return `${(durationMs / 1000).toFixed(2)}s`;
-  };
+  const selectedEvent = eventsWithStats[selectedEventIndex] ?? null;
+  const stats = (selectedEvent?.statistics ?? null) as Record<string, any> | null;
 
   const getEventMetrics = (events: QueryEvent[]) => {
     const metrics: Record<string, any> = {};
@@ -143,11 +113,71 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
     return metrics;
   };
 
-  const eventMetrics = getEventMetrics(query.events || []);
-  const duration = formatDuration(query.startTime, query.endTime);
+  // AI Analysis Handler
+  const handleAnalyzeQuery = async () => {
+    setAiAnalyzing(true);
+    try {
+      const result = await apiService.analyzeQuery(query.queryId);
+      setAiResult(result);
+    } catch (error) {
+      console.error('Error analyzing query:', error);
+      setAiResult({
+        queryId: query.queryId,
+        originalQuery: query.query,
+        optimizedQuery: null,
+        bottleneckAnalysis: null,
+        suggestions: null,
+        expectedImprovement: null,
+        error: 'Failed to analyze query: ' + (error as Error).message,
+        available: false,
+      });
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  // Helper formatting functions
+  const formatBytes = (bytes: number | null | undefined): string => {
+    if (!bytes || bytes === 0) return '0 B';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(2)} KB`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(2)} MB`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(2)} GB`;
+  };
+
+  const formatNumber = (value?: number | null): string => {
+    if (value === null || value === undefined) return 'N/A';
+    return value.toLocaleString();
+  };
+
+  const formatTimestamp = (timestamp?: string | null): string => {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const formatTime = (time: number | null | undefined): string => {
+    if (!time && time !== 0) return 'N/A';
+    if (time < 1) return `${(time * 1000).toFixed(2)} ms`;
+    if (time < 60) return `${time.toFixed(2)} s`;
+    const minutes = Math.floor(time / 60);
+    const seconds = (time % 60).toFixed(2);
+    return `${minutes}m ${seconds}s`;
+  };
+
+  const formatDuration = (start: string | null | undefined, end: string | null | undefined): string | null => {
+    if (!start || !end) return null;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const durationMs = endDate.getTime() - startDate.getTime();
+    if (durationMs < 1000) return `${durationMs}ms`;
+    return `${(durationMs / 1000).toFixed(2)}s`;
+  };
 
   const renderMetricRow = (label: string, value: string | number | null, icon: string = '•') => {
-    if (!value && value !== 0) return null; // Allow 0 to be displayed
+    if (!value && value !== 0) return null;
     return (
       <div style={{
         display: 'flex',
@@ -168,24 +198,6 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
     );
   };
 
-  const renderMetricCard = (title: string, value: string | number, icon: string, color: string) => (
-    <div style={{
-      backgroundColor: 'white',
-      padding: '10px',
-      borderRadius: '6px',
-      border: `2px solid ${color}`,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-    }}>
-      <div style={{ fontSize: '10px', color: '#6c757d', marginBottom: '4px' }}>
-        <span style={{ marginRight: '4px' }}>{icon}</span>
-        {title}
-      </div>
-      <div style={{ fontSize: '16px', fontWeight: 'bold', color: color }}>
-        {value}
-      </div>
-    </div>
-  );
-
   const renderSection = (title: string, icon: string, children: React.ReactNode) => (
     <div style={{ marginBottom: '14px' }}>
       <div style={{
@@ -197,7 +209,7 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
         paddingBottom: '5px',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px'
+        gap: '6px',
       }}>
         <span>{icon}</span>
         <span>{title}</span>
@@ -224,6 +236,54 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
             }}>
               <div style={{ color: '#6c757d', marginBottom: '2px' }}>P{item.percentile || idx}</div>
               <div style={{ fontWeight: 'bold', color: '#212529' }}>{formatTime(item.value)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMetricCard = (title: string, value: string | number, icon: string, color: string) => (
+    <div style={{
+      backgroundColor: 'white',
+      padding: '10px',
+      borderRadius: '6px',
+      border: `2px solid ${color}`,
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+    }}>
+      <div style={{ fontSize: '10px', color: '#6c757d', marginBottom: '4px' }}>
+        <span style={{ marginRight: '4px' }}>{icon}</span>
+        {title}
+      </div>
+      <div style={{ fontSize: '16px', fontWeight: 'bold', color: color }}>
+        {value}
+      </div>
+    </div>
+  );
+
+  const renderTaskStatistics = (tasks: any[] | null | undefined) => {
+    if (!tasks || tasks.length === 0) return null;
+
+    return (
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#495057' }}>
+          Task Distribution
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+          {tasks.slice(0, 6).map((task: any, idx: number) => (
+            <div key={idx} style={{
+              padding: '6px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '5px',
+              fontSize: '9px'
+            }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '3px', color: '#212529' }}>
+                Task {idx + 1}
+              </div>
+              <div style={{ color: '#6c757d' }}>
+                {task.totalDrivers && <div>Drivers: {task.totalDrivers}</div>}
+                {task.cumulativeUserMemory && <div>Memory: {formatBytes(task.cumulativeUserMemory)}</div>}
+              </div>
             </div>
           ))}
         </div>
@@ -271,36 +331,6 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
                   <span style={{ color: '#6c757d' }}>Blocked: </span>
                   <span style={{ fontWeight: 'bold' }}>{op.blockedWall ? formatTime(parseFloat(op.blockedWall) / 1000000000) : 'N/A'}</span>
                 </div>
-              </div>:
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderTaskStatistics = (tasks: any[] | null | undefined) => {
-    if (!tasks || tasks.length === 0) return null;
-
-    return (
-      <div style={{ marginBottom: '10px' }}>
-        <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#495057' }}>
-          Task Distribution
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-          {tasks.slice(0, 6).map((task: any, idx: number) => (
-            <div key={idx} style={{
-              padding: '6px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '5px',
-              fontSize: '9px'
-            }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '3px', color: '#212529' }}>
-                Task {idx + 1}
-              </div>
-              <div style={{ color: '#6c757d' }}>
-                {task.totalDrivers && <div>Drivers: {task.totalDrivers}</div>}
-                {task.cumulativeUserMemory && <div>Memory: {formatBytes(task.cumulativeUserMemory)}</div>}
               </div>
             </div>
           ))}
@@ -308,6 +338,11 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
       </div>
     );
   };
+
+  // Calculate display values
+  const eventMetrics = getEventMetrics(query.events || []);
+  const duration = formatDuration(query.startTime, query.endTime);
+
 
   // --- 1. Render logic for when a database is selected ---
   if (selectedDatabase) {
@@ -327,7 +362,7 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
         maxHeight: '90vh',
         overflow: 'auto',
         fontSize: '12px',
-        borderLeft: `5px solid ${db.status === 'ACTIVE' ? '#51cf66' : '#ff6b6b'}` // Green/Red accent for status
+        borderLeft: `5px solid ${db.status === 'ACTIVE' ? '#51cf66' : '#ff6b6b'}`
       }}>
         {/* Header */}
         <div style={{
@@ -445,11 +480,12 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
         padding: '14px 18px',
         borderRadius: '12px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-        maxWidth: '550px',
+        maxWidth: '600px',
+        minWidth: '450px',  
         maxHeight: '90vh',
         overflow: 'auto',
         fontSize: '12px',
-        borderLeft: `5px solid #1976d2` // Blue accent for fragment
+        borderLeft: `5px solid #1976d2`
       }}>
         {/* Header */}
         <div style={{
@@ -472,7 +508,7 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
             padding: '5px 10px',
             borderRadius: '6px',
             fontSize: '11px',
-            display: 'inline-block'
+            display: 'inline-block',
           }}>
             {fragment.partitioningType}
           </span>
@@ -505,23 +541,11 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
           </>
         )}
 
-        {/* Operators */}
+        {/* Operators Section */}
         {fragment.operators && fragment.operators.length > 0 &&
           renderSection(`Operators (${fragment.operators.length})`, '⚙️',
-            <div style={{
-              fontSize: '10px',
-              fontFamily: 'monospace',
-              backgroundColor: '#f8f9fa',
-              padding: '8px 10px',
-              borderRadius: '5px',
-              maxHeight: '200px',
-              overflow: 'auto',
-              border: '1px solid #dee2e6',
-              color: '#212529',
-              lineHeight: '1.4',
-              whiteSpace: 'pre'
-            }}>
-              {fragment.operators.join('\n')}
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              <OperatorTree operators={fragment.operators} />
             </div>
           )
         }
@@ -565,536 +589,535 @@ const UnifiedMetricsPanel = ({ query, selectedFragment, selectedDatabase }: Unif
     );
   }
 
-  // --- 3. DEFAULT: Render query-wide metrics (existing logic) ---
-  return (
-    <div 
-      ref={panelRef}
+  // --- 3. DEFAULT: Render query-wide metrics ---
+  return (<div 
+    ref={panelRef}
+    style={{
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      zIndex: 10,
+      backgroundColor: 'white',
+      padding: '14px 18px',
+      borderRadius: '12px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      maxWidth: '550px',
+      maxHeight: '90vh',
+      overflow: 'auto',
+      fontSize: '12px',
+      borderLeft: `5px solid ${
+        query.state === 'FINISHED' ? '#51cf66' :
+        query.errorMessage ? '#ff6b6b' :
+        query.state === 'RUNNING' ? '#ffd43b' : '#74c0fc'
+      }`
+    }}
+  >
+    <CopyPaste 
+      copyParentContent={true} 
+      parentRef={panelRef}
       style={{
         position: 'absolute',
-        top: 10,
-        left: 10,
-        zIndex: 10,
-        backgroundColor: 'white',
-        padding: '14px 18px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-        maxWidth: '550px',
-        maxHeight: '90vh',
-        overflow: 'auto',
-        fontSize: '12px',
-        borderLeft: `5px solid ${
-          query.state === 'FINISHED' ? '#51cf66' :
-          query.errorMessage ? '#ff6b6b' :
-          query.state === 'RUNNING' ? '#ffd43b' : '#74c0fc'
-        }`
+        top: 8,
+        right: 8,
+        marginLeft: '20px',
+        zIndex: 20
       }}
-    >
-      <CopyPaste 
-        copyParentContent={true} 
-        parentRef={panelRef}
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          marginLeft: '20px',
-          zIndex: 20
-        }}
-      />
-      {/* Header */}
-      <div style={{
-        fontWeight: 'bold',
-        marginBottom: '12px',
-        marginRight: '10px',
-        fontSize: '17px',
-        color: '#212529',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '10px'}}>
-          <span>📊</span>
-          <span>Query Metrics & Statistics</span>
-        </div>
-        {/* Status Badge */}
-        <span style={{
-          color: query.state === 'FINISHED' ? '#2b8a3e' :
-                 query.errorMessage ? '#c92a2a' :
-                 query.state === 'RUNNING' ? '#f08c00' : '#1971c2',
-          fontWeight: 'bold',
-          backgroundColor: query.state === 'FINISHED' ? '#d3f9d8' :
-                           query.errorMessage ? '#ffe3e3' :
-                           query.state === 'RUNNING' ? '#fff3bf' : '#d0ebff',
-          padding: '5px 10px',
-          borderRadius: '6px',
-          fontSize: '11px',
-          margin: '10px',
-          display: 'inline-block'
-        }}>
-          {query.state}
-        </span>
+    />
+    {/* Header */}
+    <div style={{
+      fontWeight: 'bold',
+      marginBottom: '12px',
+      marginRight: '10px',
+      fontSize: '17px',
+      color: '#212529',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '10px'}}>
+        <span>📊</span>
+        <span>Query Metrics & Statistics</span>
       </div>
+      {/* Status Badge */}
+      <span style={{
+        color: query.state === 'FINISHED' ? '#2b8a3e' :
+               query.errorMessage ? '#c92a2a' :
+               query.state === 'RUNNING' ? '#f08c00' : '#1971c2',
+        fontWeight: 'bold',
+        backgroundColor: query.state === 'FINISHED' ? '#d3f9d8' :
+                         query.errorMessage ? '#ffe3e3' :
+                         query.state === 'RUNNING' ? '#fff3bf' : '#d0ebff',
+        padding: '5px 10px',
+        borderRadius: '6px',
+        fontSize: '11px',
+        margin: '10px',
+        display: 'inline-block'
+      }}>
+        {query.state}
+      </span>
+    </div>
 
-      {/* Basic Info Section */}
-      {renderSection('Basic Information', '📝',
-        <>
-          {renderMetricRow('Query ID', query.queryId, '🔑')}
-          {renderMetricRow('User', query.user, '👤')}
-          {renderMetricRow('Event Count', query.events?.length || 0, '📝')}
-          {renderMetricRow('Start Time', formatTimestamp(query.startTime), '🕐')}
-          {renderMetricRow('End Time', formatTimestamp(query.endTime), '🕑')}
-          {renderMetricRow('Duration', duration, '⏱️')}
-        </>
-      )}
+    {/* Basic Info Section */}
+    {renderSection('Basic Information', '📝',
+      <>
+        {renderMetricRow('Query ID', query.queryId, '🔑')}
+        {renderMetricRow('User', query.user, '👤')}
+        {renderMetricRow('Event Count', query.events?.length || 0, '📝')}
+        {renderMetricRow('Start Time', formatTimestamp(query.startTime), '🕐')}
+        {renderMetricRow('End Time', formatTimestamp(query.endTime), '🕑')}
+        {renderMetricRow('Duration', duration, '⏱️')}
+      </>
+    )}
 
-      {/* Event Selector for Detailed Statistics */}
-      {eventsWithStats.length > 0 && (
-        <div style={{ marginBottom: '14px' }}>
-          {eventsWithStats.length > 1 && (
-            <div style={{ marginBottom: '10px' }}>
-              <div style={{ fontSize: '10px', color: '#6c757d', marginBottom: '5px' }}>
-                Select Event for Detailed Statistics
-              </div>
-              <select
-                value={selectedEventIndex}
-                onChange={(e) => setSelectedEventIndex(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '6px',
-                  borderRadius: '5px',
-                  border: '1px solid #dee2e6',
-                  fontSize: '11px',
-                  backgroundColor: 'white'
-                }}
-              >
-                {eventsWithStats.map((event, idx) => (
-                  <option key={idx} value={idx}>
-                    {event.eventType} - {event.state} ({event.timestamp})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Key Metrics Cards */}
-      {stats && (
-        <div style={{ marginBottom: '14px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {renderMetricCard('CPU Time', formatTime(stats.cpuTime), '🖥️', '#1971c2')}
-            {renderMetricCard('Wall Time', formatTime(stats.wallTime), '⏰', '#2b8a3e')}
-            {renderMetricCard('Queued Time', formatTime(stats.queuedTime), '⏳', '#f08c00')}
-            {renderMetricCard('Peak Memory', formatBytes(stats.peakUserMemoryBytes), '🧠', '#9c36b5')}
-          </div>
-        </div>
-      )}
-
-      {/* Performance Metrics Section (from event aggregation) */}
-      {renderSection('Aggregated Performance', '⚡',
-        <>
-          {renderMetricRow('Total Execution', query.totalExecutionTime ? `${query.totalExecutionTime}ms` : null, '⏱️')}
-          {renderMetricRow('CPU Time', eventMetrics.cpuTime ? `${eventMetrics.cpuTime}ms` : null, '🖥️')}
-          {renderMetricRow('Wall Time', eventMetrics.wallTime ? `${eventMetrics.wallTime}ms` : null, '⏰')}
-          {renderMetricRow('Queued Time', eventMetrics.queuedTime ? `${eventMetrics.queuedTime}ms` : null, '⏳')}
-          {renderMetricRow('Peak Memory', formatBytes(eventMetrics.peakMemory), '🧠')}
-        </>
-      )}
-
-      {/* Data Flow Section */}
-      {stats && renderSection('Data Flow', '📊',
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-          <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <div style={{ fontSize: '9px', color: '#6c757d' }}>Physical Input</div>
-            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1971c2' }}>
-              {formatNumber(stats.physicalInputRows)} rows
-            </div>
-            <div style={{ fontSize: '9px', color: '#868e96' }}>
-              {formatBytes(stats.physicalInputBytes)}
-            </div>
-          </div>
-          <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <div style={{ fontSize: '9px', color: '#6c757d' }}>Processed Input</div>
-            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#2b8a3e' }}>
-              {formatNumber(stats.processedInputRows)} rows
-            </div>
-            <div style={{ fontSize: '9px', color: '#868e96' }}>
-              {formatBytes(stats.processedInputBytes)}
-            </div>
-          </div>
-          <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <div style={{ fontSize: '9px', color: '#6c757d' }}>Output</div>
-            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f08c00' }}>
-              {formatNumber(stats.outputRows)} rows
-            </div>
-            <div style={{ fontSize: '9px', color: '#868e96' }}>
-              {formatBytes(stats.outputBytes)}
-            </div>
-          </div>
-          <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <div style={{ fontSize: '9px', color: '#6c757d' }}>Completed Splits</div>
-            <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#9c36b5' }}>
-              {formatNumber(stats.completedSplits)}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Data Metrics Section (from aggregation) */}
-      {(eventMetrics.totalRows || eventMetrics.totalBytes || eventMetrics.completedSplits) &&
-        renderSection('Data Metrics', '💾',
-          <>
-            {renderMetricRow('Total Rows', formatNumber(eventMetrics.totalRows), '📊')}
-            {renderMetricRow('Total Data', formatBytes(eventMetrics.totalBytes), '💾')}
-            {renderMetricRow('Completed Splits', formatNumber(eventMetrics.completedSplits), '✂️')}
-          </>
-        )
-      }
-
-      {/* CPU Time Distribution */}
-      {stats?.cpuTimeDistribution && renderSection('CPU Time Distribution', '⏱️',
-        renderDistribution(stats.cpuTimeDistribution, 'Percentiles')
-      )}
-
-      {/* Operator Summaries */}
-      {stats?.operatorSummaries && renderSection('Operator Summaries', '⚙️',
-        renderOperatorSummaries(stats.operatorSummaries)
-      )}
-
-      {/* Task Statistics */}
-      {stats?.taskStatistics && renderSection('Task Statistics', '📦',
-        renderTaskStatistics(stats.taskStatistics)
-      )}
-
-      {/* Additional Metrics */}
-      {stats && renderSection('Additional Metrics', '📋',
-        <div style={{ fontSize: '10px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginBottom: '6px' }}>
-            <div>
-              <span style={{ color: '#6c757d' }}>Scheduled Time: </span>
-              <span style={{ fontWeight: 'bold' }}>{formatTime(stats.scheduledTime)}</span>
-            </div>
-            <div>
-              <span style={{ color: '#6c757d' }}>Analysis Time: </span>
-              <span style={{ fontWeight: 'bold' }}>{formatTime(stats.analysisTime)}</span>
-            </div>
-            <div>
-              <span style={{ color: '#6c757d' }}>Planning Time: </span>
-              <span style={{ fontWeight: 'bold' }}>{formatTime(stats.planningTime)}</span>
-            </div>
-            <div>
-              <span style={{ color: '#6c757d' }}>Cumulative Memory: </span>
-              <span style={{ fontWeight: 'bold' }}>{formatBytes(stats.cumulativeMemory)}</span>
-            </div>
-            {stats.spilledBytes > 0 && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <span style={{ color: '#c92a2a', fontWeight: 'bold' }}>Spilled Data: </span>
-                <span style={{ fontWeight: 'bold' }}>{formatBytes(stats.spilledBytes)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Source Information */}
-      {(eventMetrics.catalogs || eventMetrics.schemas) &&
-        renderSection('Data Sources', '🗄️',
-          <>
-            {eventMetrics.catalogs && (
-              <div style={{ marginBottom: '6px' }}>
-                <div style={{ color: '#6c757d', fontSize: '10px', marginBottom: '4px' }}>
-                  📚 Catalogs
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '5px',
-                  flexWrap: 'wrap'
-                }}>
-                  {eventMetrics.catalogs.map((cat: string, idx: number) => (
-                    <span key={idx} style={{
-                      backgroundColor: '#e7f5ff',
-                      color: '#1971c2',
-                      padding: '3px 7px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: '600'
-                    }}>
-                      {cat}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {eventMetrics.schemas && (
-              <div style={{ marginBottom: '6px' }}>
-                <div style={{ color: '#6c757d', fontSize: '10px', marginBottom: '4px' }}>
-                  🗂️ Schemas
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '5px',
-                  flexWrap: 'wrap'
-                }}>
-                  {eventMetrics.schemas.map((schema: string, idx: number) => (
-                    <span key={idx} style={{
-                      backgroundColor: '#f3f0ff',
-                      color: '#5f3dc4',
-                      padding: '3px 7px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: '600'
-                    }}>
-                      {schema}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )
-      }
-
-      {/* SQL Query Section */}
-      {query.query &&
-        renderSection('SQL Query', '💻',
-          <div style={{
-            fontSize: '10px',
-            fontFamily: 'monospace',
-            backgroundColor: '#f8f9fa',
-            padding: '8px 10px',
-            borderRadius: '5px',
-            maxHeight: '100px',
-            overflow: 'auto',
-            border: '1px solid #dee2e6',
-            color: '#212529',
-            lineHeight: '1.4'
-          }}>
-            {query.query}
-          </div>
-        )
-      }
-
-      {/* AI Query Optimization Section */}
-      {renderSection('AI Query Optimization', '🤖',
-        <div>
+    {/* Event Selector for Detailed Statistics */}
+    {eventsWithStats.length > 0 && (
+      <div style={{ marginBottom: '14px' }}>
+        {eventsWithStats.length > 1 && (
           <div style={{ marginBottom: '10px' }}>
-            <button
-              onClick={handleAnalyzeQuery}
-              disabled={!aiAvailable || aiAnalyzing}
+            <div style={{ fontSize: '10px', color: '#6c757d', marginBottom: '5px' }}>
+              Select Event for Detailed Statistics
+            </div>
+            <select
+              value={selectedEventIndex}
+              onChange={(e) => setSelectedEventIndex(Number(e.target.value))}
               style={{
                 width: '100%',
-                padding: '10px',
-                backgroundColor: aiAvailable ? '#1971c2' : '#adb5bd',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                cursor: aiAvailable ? 'pointer' : 'not-allowed',
-                opacity: aiAnalyzing ? 0.7 : 1,
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (aiAvailable && !aiAnalyzing) {
-                  e.currentTarget.style.backgroundColor = '#1864ab';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (aiAvailable) {
-                  e.currentTarget.style.backgroundColor = '#1971c2';
-                }
+                padding: '6px',
+                borderRadius: '5px',
+                border: '1px solid #dee2e6',
+                fontSize: '11px',
+                backgroundColor: 'white'
               }}
             >
-              {aiAnalyzing ? '🔄 Analyzing...' : aiAvailable ? '✨ Analyze Query with AI' : '⚠️ AI Feature Not Configured'}
-            </button>
-            {!aiAvailable && (
-              <div style={{
-                fontSize: '10px',
-                color: '#868e96',
-                marginTop: '6px',
-                textAlign: 'center'
-              }}>
-                Configure AWS Bedrock credentials to enable AI analysis
-              </div>
-            )}
+              {eventsWithStats.map((event, idx) => (
+                <option key={idx} value={idx}>
+                  {event.eventType} - {event.state} ({event.timestamp})
+                </option>
+              ))}
+            </select>
           </div>
+        )}
+      </div>
+    )}
 
-          {aiResult && (
-            <div style={{
-              marginTop: '12px',
-              backgroundColor: aiResult.error ? '#ffe3e3' : '#e7f5ff',
-              padding: '10px',
-              borderRadius: '6px',
-              border: `2px solid ${aiResult.error ? '#ff6b6b' : '#1971c2'}`
-            }}>
-              {aiResult.error ? (
-                <div style={{ color: '#c92a2a', fontSize: '11px' }}>
-                  <strong>Error:</strong> {aiResult.error}
-                </div>
-              ) : (
-                <>
-                  {/* Bottleneck Analysis */}
-                  {aiResult.bottleneckAnalysis && (
-                    <div style={{ marginBottom: '12px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2' }}>
-                        📊 Bottleneck Analysis
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#495057', lineHeight: '1.5' }}>
-                        {aiResult.bottleneckAnalysis}
-                      </div>
-                    </div>
-                  )}
+    {/* Key Metrics Cards */}
+    {stats && (
+      <div style={{ marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+          {renderMetricCard('CPU Time', formatTime(stats.cpuTime), '🖥️', '#1971c2')}
+          {renderMetricCard('Wall Time', formatTime(stats.wallTime), '⏰', '#2b8a3e')}
+          {renderMetricCard('Queued Time', formatTime(stats.queuedTime), '⏳', '#f08c00')}
+          {renderMetricCard('Peak Memory', formatBytes(stats.peakUserMemoryBytes), '🧠', '#9c36b5')}
+        </div>
+      </div>
+    )}
 
-                  {/* Optimized Query */}
-                  {aiResult.optimizedQuery && (
-                    <div style={{ marginBottom: '12px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>✨ Optimized Query</span>
-                        <button
-                          onClick={() => navigator.clipboard.writeText(aiResult.optimizedQuery || '')}
-                          style={{
-                            backgroundColor: 'white',
-                            border: '1px solid #1971c2',
-                            color: '#1971c2',
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '9px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          📋 Copy
-                        </button>
-                      </div>
-                      <div style={{
-                        fontSize: '10px',
-                        fontFamily: 'monospace',
-                        backgroundColor: 'white',
-                        padding: '8px 10px',
-                        borderRadius: '5px',
-                        maxHeight: '150px',
-                        overflow: 'auto',
-                        border: '1px solid #339af0',
-                        color: '#212529',
-                        lineHeight: '1.4'
-                      }}>
-                        {aiResult.optimizedQuery}
-                      </div>
-                    </div>
-                  )}
+    {/* Performance Metrics Section (from event aggregation) */}
+    {renderSection('Aggregated Performance', '⚡',
+      <>
+        {renderMetricRow('Total Execution', query.totalExecutionTime ? `${query.totalExecutionTime}ms` : null, '⏱️')}
+        {renderMetricRow('CPU Time', eventMetrics.cpuTime ? `${eventMetrics.cpuTime}ms` : null, '🖥️')}
+        {renderMetricRow('Wall Time', eventMetrics.wallTime ? `${eventMetrics.wallTime}ms` : null, '⏰')}
+        {renderMetricRow('Queued Time', eventMetrics.queuedTime ? `${eventMetrics.queuedTime}ms` : null, '⏳')}
+        {renderMetricRow('Peak Memory', formatBytes(eventMetrics.peakMemory), '🧠')}
+      </>
+    )}
 
-                  {/* Suggestions */}
-                  {aiResult.suggestions && aiResult.suggestions.length > 0 && (
-                    <div style={{ marginBottom: '12px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2' }}>
-                        💡 Optimization Suggestions
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '10px', color: '#495057' }}>
-                        {aiResult.suggestions.map((suggestion, idx) => (
-                          <li key={idx} style={{ marginBottom: '4px', lineHeight: '1.5' }}>
-                            {suggestion}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+    {/* Data Flow Section */}
+    {stats && renderSection('Data Flow', '📊',
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+        <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+          <div style={{ fontSize: '9px', color: '#6c757d' }}>Physical Input</div>
+          <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1971c2' }}>
+            {formatNumber(stats.physicalInputRows)} rows
+          </div>
+          <div style={{ fontSize: '9px', color: '#868e96' }}>
+            {formatBytes(stats.physicalInputBytes)}
+          </div>
+        </div>
+        <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+          <div style={{ fontSize: '9px', color: '#6c757d' }}>Processed Input</div>
+          <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#2b8a3e' }}>
+            {formatNumber(stats.processedInputRows)} rows
+          </div>
+          <div style={{ fontSize: '9px', color: '#868e96' }}>
+            {formatBytes(stats.processedInputBytes)}
+          </div>
+        </div>
+        <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+          <div style={{ fontSize: '9px', color: '#6c757d' }}>Output</div>
+          <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f08c00' }}>
+            {formatNumber(stats.outputRows)} rows
+          </div>
+          <div style={{ fontSize: '9px', color: '#868e96' }}>
+            {formatBytes(stats.outputBytes)}
+          </div>
+        </div>
+        <div style={{ padding: '7px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
+          <div style={{ fontSize: '9px', color: '#6c757d' }}>Completed Splits</div>
+          <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#9c36b5' }}>
+            {formatNumber(stats.completedSplits)}
+          </div>
+        </div>
+      </div>
+    )}
 
-                  {/* Expected Improvement */}
-                  {aiResult.expectedImprovement && (
-                    <div style={{
-                      backgroundColor: '#d3f9d8',
-                      padding: '8px',
-                      borderRadius: '5px',
-                      borderLeft: '3px solid #51cf66'
-                    }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '4px', color: '#2b8a3e' }}>
-                        🎯 Expected Improvement
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#2b8a3e', lineHeight: '1.5' }}>
-                        {aiResult.expectedImprovement}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+    {/* Data Metrics Section (from aggregation) */}
+    {(eventMetrics.totalRows || eventMetrics.totalBytes || eventMetrics.completedSplits) &&
+      renderSection('Data Metrics', '💾',
+        <>
+          {renderMetricRow('Total Rows', formatNumber(eventMetrics.totalRows), '📊')}
+          {renderMetricRow('Total Data', formatBytes(eventMetrics.totalBytes), '💾')}
+          {renderMetricRow('Completed Splits', formatNumber(eventMetrics.completedSplits), '✂️')}
+        </>
+      )
+    }
+
+    {/* CPU Time Distribution */}
+    {stats?.cpuTimeDistribution && renderSection('CPU Time Distribution', '⏱️',
+      renderDistribution(stats.cpuTimeDistribution, 'Percentiles')
+    )}
+
+    {/* Operator Summaries */}
+    {stats?.operatorSummaries && renderSection('Operator Summaries', '⚙️',
+      renderOperatorSummaries(stats.operatorSummaries)
+    )}
+
+    {/* Task Statistics */}
+    {stats?.taskStatistics && renderSection('Task Statistics', '📦',
+      renderTaskStatistics(stats.taskStatistics)
+    )}
+
+    {/* Additional Metrics */}
+    {stats && renderSection('Additional Metrics', '📋',
+      <div style={{ fontSize: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginBottom: '6px' }}>
+          <div>
+            <span style={{ color: '#6c757d' }}>Scheduled Time: </span>
+            <span style={{ fontWeight: 'bold' }}>{formatTime(stats.scheduledTime)}</span>
+          </div>
+          <div>
+            <span style={{ color: '#6c757d' }}>Analysis Time: </span>
+            <span style={{ fontWeight: 'bold' }}>{formatTime(stats.analysisTime)}</span>
+          </div>
+          <div>
+            <span style={{ color: '#6c757d' }}>Planning Time: </span>
+            <span style={{ fontWeight: 'bold' }}>{formatTime(stats.planningTime)}</span>
+          </div>
+          <div>
+            <span style={{ color: '#6c757d' }}>Cumulative Memory: </span>
+            <span style={{ fontWeight: 'bold' }}>{formatBytes(stats.cumulativeMemory)}</span>
+          </div>
+          {stats.spilledBytes > 0 && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={{ color: '#c92a2a', fontWeight: 'bold' }}>Spilled Data: </span>
+              <span style={{ fontWeight: 'bold' }}>{formatBytes(stats.spilledBytes)}</span>
             </div>
           )}
         </div>
-      )}
+      </div>
+    )}
 
-      {/* Error Section */}
-      {query.errorMessage &&
-        renderSection('⚠️ Error Details', '🚨',
-          <div style={{
-            backgroundColor: '#ffe3e3',
-            color: '#c92a2a',
-            padding: '8px',
-            borderRadius: '5px',
-            fontSize: '10px',
-            borderLeft: '3px solid #c92a2a'
-          }}>
-            {query.errorMessage}
-          </div>
-        )
-      }
-
-      {/* Individual Event Details */}
-      {query.events && query.events.length > 0 &&
-        renderSection(`Event Timeline (${query.events.length})`, '⏳',
-          query.events.map((event, idx) => (
-            <div key={idx} style={{
-              marginBottom: '8px',
-              padding: '8px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '5px',
-              borderLeft: `3px solid ${
-                event.state === 'FINISHED' ? '#51cf66' :
-                event.state === 'FAILED' ? '#ff6b6b' :
-                event.state === 'RUNNING' ? '#ffd43b' : '#74c0fc'
-              }`
-            }}>
+    {/* Source Information */}
+    {(eventMetrics.catalogs || eventMetrics.schemas) &&
+      renderSection('Data Sources', '🗄️',
+        <>
+          {eventMetrics.catalogs && (
+            <div style={{ marginBottom: '6px' }}>
+              <div style={{ color: '#6c757d', fontSize: '10px', marginBottom: '4px' }}>
+                📚 Catalogs
+              </div>
               <div style={{
-                fontWeight: 'bold',
-                fontSize: '11px',
-                color: '#212529',
-                marginBottom: '5px',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                gap: '5px',
+                flexWrap: 'wrap'
               }}>
-                <span>{event.eventType}</span>
-                <span style={{
-                  fontSize: '10px',
-                  backgroundColor: 'white',
-                  padding: '2px 5px',
-                  borderRadius: '3px',
-                  fontWeight: 'normal',
-                  color: '#6c757d'
-                }}>
-                  {event.state}
-                </span>
-              </div>
-              <div style={{ fontSize: '9px', color: '#868e96', marginBottom: '5px' }}>
-                {formatTimestamp(event.timestamp)}
-              </div>
-              <div style={{ fontSize: '10px', color: '#495057' }}>
-                {event.cpuTimeMs && <div>CPU: {event.cpuTimeMs}ms</div>}
-                {event.wallTimeMs && <div>Wall: {event.wallTimeMs}ms</div>}
-                {event.queuedTimeMs && <div>Queued: {event.queuedTimeMs}ms</div>}
-                {event.totalRows && <div>Rows: {formatNumber(event.totalRows)}</div>}
-                {event.totalBytes && <div>Data: {formatBytes(event.totalBytes)}</div>}
-                {event.peakMemoryBytes && <div>Memory: {formatBytes(event.peakMemoryBytes)}</div>}
-                {event.completedSplits && <div>Splits: {event.completedSplits}</div>}
-                {event.errorMessage && (
-                  <div style={{ color: '#c92a2a', marginTop: '3px', fontWeight: 'bold' }}>
-                    Error: {event.errorMessage}
-                  </div>
-                )}
+                {eventMetrics.catalogs.map((cat: string, idx: number) => (
+                  <span key={idx} style={{
+                    backgroundColor: '#e7f5ff',
+                    color: '#1971c2',
+                    padding: '3px 7px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: '600'
+                  }}>
+                    {cat}
+                  </span>
+                ))}
               </div>
             </div>
-          ))
-        )
-      }
-    </div>
-  );
+          )}
+          {eventMetrics.schemas && (
+            <div style={{ marginBottom: '6px' }}>
+              <div style={{ color: '#6c757d', fontSize: '10px', marginBottom: '4px' }}>
+                🗂️ Schemas
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: '5px',
+                flexWrap: 'wrap'
+              }}>
+                {eventMetrics.schemas.map((schema: string, idx: number) => (
+                  <span key={idx} style={{
+                    backgroundColor: '#f3f0ff',
+                    color: '#5f3dc4',
+                    padding: '3px 7px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: '600'
+                  }}>
+                    {schema}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )
+    }
+
+    {/* SQL Query Section */}
+    {query.query &&
+      renderSection('SQL Query', '💻',
+        <div style={{
+          fontSize: '10px',
+          fontFamily: 'monospace',
+          backgroundColor: '#f8f9fa',
+          padding: '8px 10px',
+          borderRadius: '5px',
+          maxHeight: '100px',
+          overflow: 'auto',
+          border: '1px solid #dee2e6',
+          color: '#212529',
+          lineHeight: '1.4'
+        }}>
+          {query.query}
+        </div>
+      )
+    }
+
+    {/* AI Query Optimization Section */}
+    {renderSection('AI Query Optimization', '🤖',
+      <div>
+        <div style={{ marginBottom: '10px' }}>
+          <button
+            onClick={handleAnalyzeQuery}
+            disabled={!aiAvailable || aiAnalyzing}
+            style={{
+              width: '100%',
+              padding: '10px',
+              backgroundColor: aiAvailable ? '#1971c2' : '#adb5bd',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: aiAvailable ? 'pointer' : 'not-allowed',
+              opacity: aiAnalyzing ? 0.7 : 1,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              if (aiAvailable && !aiAnalyzing) {
+                e.currentTarget.style.backgroundColor = '#1864ab';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (aiAvailable) {
+                e.currentTarget.style.backgroundColor = '#1971c2';
+              }
+            }}
+          >
+            {aiAnalyzing ? '🔄 Analyzing...' : aiAvailable ? '✨ Analyze Query with AI' : '⚠️ AI Feature Not Configured'}
+          </button>
+          {!aiAvailable && (
+            <div style={{
+              fontSize: '10px',
+              color: '#868e96',
+              marginTop: '6px',
+              textAlign: 'center'
+            }}>
+              Configure AWS Bedrock credentials to enable AI analysis
+            </div>
+          )}
+        </div>
+
+        {aiResult && (
+          <div style={{
+            marginTop: '12px',
+            backgroundColor: aiResult.error ? '#ffe3e3' : '#e7f5ff',
+            padding: '10px',
+            borderRadius: '6px',
+            border: `2px solid ${aiResult.error ? '#ff6b6b' : '#1971c2'}`
+          }}>
+            {aiResult.error ? (
+              <div style={{ color: '#c92a2a', fontSize: '11px' }}>
+                <strong>Error:</strong> {aiResult.error}
+              </div>
+            ) : (
+              <>
+                {/* Bottleneck Analysis */}
+                {aiResult.bottleneckAnalysis && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2' }}>
+                      📊 Bottleneck Analysis
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#495057', lineHeight: '1.5' }}>
+                      {aiResult.bottleneckAnalysis}
+                    </div>
+                  </div>
+                )}
+
+                {/* Optimized Query */}
+                {aiResult.optimizedQuery && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>✨ Optimized Query</span>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(aiResult.optimizedQuery || '')}
+                        style={{
+                          backgroundColor: 'white',
+                          border: '1px solid #1971c2',
+                          color: '#1971c2',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '9px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
+                    <div style={{
+                      fontSize: '10px',
+                      fontFamily: 'monospace',
+                      backgroundColor: 'white',
+                      padding: '8px 10px',
+                      borderRadius: '5px',
+                      maxHeight: '150px',
+                      overflow: 'auto',
+                      border: '1px solid #339af0',
+                      color: '#212529',
+                      lineHeight: '1.4'
+                    }}>
+                      {aiResult.optimizedQuery}
+                    </div>
+                  </div>
+                )}
+
+                {/* Suggestions */}
+                {aiResult.suggestions && aiResult.suggestions.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '6px', color: '#1971c2' }}>
+                      💡 Optimization Suggestions
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '10px', color: '#495057' }}>
+                      {aiResult.suggestions.map((suggestion, idx) => (
+                        <li key={idx} style={{ marginBottom: '4px', lineHeight: '1.5' }}>
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Expected Improvement */}
+                {aiResult.expectedImprovement && (
+                  <div style={{
+                    backgroundColor: '#d3f9d8',
+                    padding: '8px',
+                    borderRadius: '5px',
+                    borderLeft: '3px solid #51cf66'
+                  }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '4px', color: '#2b8a3e' }}>
+                      🎯 Expected Improvement
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#2b8a3e', lineHeight: '1.5' }}>
+                      {aiResult.expectedImprovement}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Error Section */}
+    {query.errorMessage &&
+      renderSection('⚠️ Error Details', '🚨',
+        <div style={{
+          backgroundColor: '#ffe3e3',
+          color: '#c92a2a',
+          padding: '8px',
+          borderRadius: '5px',
+          fontSize: '10px',
+          borderLeft: '3px solid #c92a2a'
+        }}>
+          {query.errorMessage}
+        </div>
+      )
+    }
+
+    {/* Individual Event Details */}
+    {query.events && query.events.length > 0 &&
+      renderSection(`Event Timeline (${query.events.length})`, '⏳',
+        query.events.map((event, idx) => (
+          <div key={idx} style={{
+            marginBottom: '8px',
+            padding: '8px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '5px',
+            borderLeft: `3px solid ${
+              event.state === 'FINISHED' ? '#51cf66' :
+              event.state === 'FAILED' ? '#ff6b6b' :
+              event.state === 'RUNNING' ? '#ffd43b' : '#74c0fc'
+            }`
+          }}>
+            <div style={{
+              fontWeight: 'bold',
+              fontSize: '11px',
+              color: '#212529',
+              marginBottom: '5px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{event.eventType}</span>
+              <span style={{
+                fontSize: '10px',
+                backgroundColor: 'white',
+                padding: '2px 5px',
+                borderRadius: '3px',
+                fontWeight: 'normal',
+                color: '#6c757d'
+              }}>
+                {event.state}
+              </span>
+            </div>
+            <div style={{ fontSize: '9px', color: '#868e96', marginBottom: '5px' }}>
+              {formatTimestamp(event.timestamp)}
+            </div>
+            <div style={{ fontSize: '10px', color: '#495057' }}>
+              {event.cpuTimeMs && <div>CPU: {event.cpuTimeMs}ms</div>}
+              {event.wallTimeMs && <div>Wall: {event.wallTimeMs}ms</div>}
+              {event.queuedTimeMs && <div>Queued: {event.queuedTimeMs}ms</div>}
+              {event.totalRows && <div>Rows: {formatNumber(event.totalRows)}</div>}
+              {event.totalBytes && <div>Data: {formatBytes(event.totalBytes)}</div>}
+              {event.peakMemoryBytes && <div>Memory: {formatBytes(event.peakMemoryBytes)}</div>}
+              {event.completedSplits && <div>Splits: {event.completedSplits}</div>}
+              {event.errorMessage && (
+                <div style={{ color: '#c92a2a', marginTop: '3px', fontWeight: 'bold' }}>
+                  Error: {event.errorMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        ))
+      )
+    }
+  </div>
+);
 };
 
 export default UnifiedMetricsPanel;
