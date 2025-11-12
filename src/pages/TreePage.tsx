@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ReactFlow, applyNodeChanges, applyEdgeChanges,
@@ -573,11 +573,40 @@ const TreePage: React.FC = () => {
   };
 
   if (loading && !currentQuery) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>Loading queries...</div>;
+    return (
+      <div
+        data-testid="loading-spinner"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '18px',
+        }}
+      >
+        Loading queries...
+      </div>
+    );
   }
 
   if (error && !currentQuery) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'red', fontSize: '16px', padding: '20px', textAlign: 'center' }}>{error}</div>;
+    return (
+      <div
+        className="page-level-error"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          color: 'red',
+          fontSize: '16px',
+          padding: '20px',
+          textAlign: 'center',
+        }}
+      >
+        {error}
+      </div>
+    );
   }
 
   return (
@@ -662,6 +691,7 @@ const TreePage: React.FC = () => {
         </>
       )}
       <ReactFlow
+        className="dag-canvas"
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}

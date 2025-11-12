@@ -69,15 +69,30 @@ ${'-'.repeat(80)}
   };
 
   // Convert QueryTree data to CardProps format
-  const cards: CardProps[] = queries.map((query) => ({
-    title: query.queryId,
-    description: query.query || 'No query text available',
-    status: query.state === 'FINISHED' ? 'ok' : 
-            query.errorMessage ? 'failed' : 
-            query.state === 'RUNNING' ? 'idle' : 'unknown',
-    timestamp: query.startTime,
-    onClick: () => handleQueryClick(query.queryId)
-  }));
+  const cards: CardProps[] = queries.map((query) => {
+    let status: CardProps['status'] = 'unknown';
+    if (query.state === 'FINISHED') {
+      status = 'finished';
+    } else if (query.errorMessage) {
+      status = 'failed';
+    } else if (query.state === 'RUNNING') {
+      status = 'running';
+    } else if (query.state === 'QUEUED') {
+      status = 'queued';
+    } else if (query.state === 'IDLE') {
+      status = 'idle';
+    } else if (query.state === 'OK') {
+      status = 'ok';
+    }
+
+    return {
+      title: query.queryId,
+      description: query.query || 'No query text available',
+      status,
+      timestamp: query.startTime,
+      onClick: () => handleQueryClick(query.queryId)
+    };
+  });
 
   if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
   if (error) return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;

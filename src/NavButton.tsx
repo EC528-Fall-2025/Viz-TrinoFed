@@ -6,29 +6,31 @@ import { SxProps, Theme } from '@mui/material/styles';
 // It should be styled with the MUI Button component
 
 type NavButtonProps = {
-    to: string;
-    external?: boolean;
-    children: React.ReactNode;
-    sx?: SxProps<Theme>;
-  };
+  to: string;
+  external?: boolean;
+  children: React.ReactNode;
+  sx?: SxProps<Theme>;
+  dataTestId?: string;
+};
   
-  export default function NavButton({ to, external, children, sx }: NavButtonProps) {
-    if (external) {
-      return (
-        <Button
-          component="a"
-          href={to}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={sx}
-        >
-          {children}
-        </Button>
-      );
-    }
+export default function NavButton({ to, external, children, sx, dataTestId }: NavButtonProps) {
+  if (external) {
     return (
-      <Button component={RouterLink} to={to} sx={sx}>
+      <Button
+        component="a"
+        href={to}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={sx}
+        data-testid={dataTestId}
+      >
         {children}
       </Button>
     );
   }
+  return (
+    <Button component={RouterLink} to={to} sx={sx} data-testid={dataTestId}>
+      {children}
+    </Button>
+  );
+}
