@@ -446,7 +446,8 @@ const UnifiedMetricsPanel = ({ query, activeFragment, isOpen, onClose, onOpen }:
         padding: '14px 18px',
         borderRadius: '12px',
         boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-        maxWidth: '550px',
+        maxWidth: '600px',
+        minWidth: '450px',  
         maxHeight: '90vh',
         overflow: 'auto',
         fontSize: '12px',
@@ -473,7 +474,7 @@ const UnifiedMetricsPanel = ({ query, activeFragment, isOpen, onClose, onOpen }:
             padding: '5px 10px',
             borderRadius: '6px',
             fontSize: '11px',
-            display: 'inline-block'
+            display: 'inline-block',
           }}>
             {fragment.partitioningType}
           </span>
@@ -506,23 +507,11 @@ const UnifiedMetricsPanel = ({ query, activeFragment, isOpen, onClose, onOpen }:
           </>
         )}
 
-        {/* Operators */}
+        {/* Updated Operators Section */}
         {fragment.operators && fragment.operators.length > 0 &&
           renderSection(`Operators (${fragment.operators.length})`, '⚙️',
-            <div style={{
-              fontSize: '10px',
-              fontFamily: 'monospace',
-              backgroundColor: '#f8f9fa',
-              padding: '8px 10px',
-              borderRadius: '5px',
-              maxHeight: '200px',
-              overflow: 'auto',
-              border: '1px solid #dee2e6',
-              color: '#212529',
-              lineHeight: '1.4',
-              whiteSpace: 'pre'
-            }}>
-              {fragment.operators.join('\n')}
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              <OperatorTree operators={fragment.operators} />
             </div>
           )
         }
