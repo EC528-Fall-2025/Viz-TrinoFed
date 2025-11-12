@@ -23,6 +23,14 @@ trino:
   kafka:
     topic: trino-query-events
 
+aws:
+  bedrock:
+    enabled: ${AWS_BEDROCK_ENABLED:false}
+    region: ${AWS_REGION:us-east-1}
+    model-id: ${AWS_BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}
+    access-key-id: ${AWS_ACCESS_KEY_ID:}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
 logging:
   level:
     com.trinofed.parser: DEBUG

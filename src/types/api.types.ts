@@ -82,3 +82,19 @@ export interface QueryTree {
   fragments: Fragment[];
 }
 
+export interface AIAnalysisResponse {
+  queryId: string;
+  originalQuery: string;
+  optimizedQuery: string | null;
+  bottleneckAnalysis: string | null;
+  suggestions: string[] | null;
+  expectedImprovement: string | null;
+  error: string | null;
+  available: boolean;
+}
+
+export interface AIStatus {
+  available: boolean;
+  feature: string;
+}
+
