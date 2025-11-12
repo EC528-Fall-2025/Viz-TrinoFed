@@ -37,11 +37,16 @@ class QueryEventServiceTest {
     @Mock(lenient = true)
     private QueryPlanParser queryPlanParser;
 
+    // Add this new mock
+    @Mock(lenient = true)
+    private TextPlanParser textPlanParser;
+
     private QueryEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new QueryEventService(messagingTemplate, databaseService, queryPlanParser);
+        // Update this line to include textPlanParser as the 4th parameter
+        service = new QueryEventService(messagingTemplate, databaseService, queryPlanParser, textPlanParser);
         // Setup lenient default behavior
         lenient().when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
     }

@@ -23,6 +23,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <lombok.version>1.18.36</lombok.version>
+        <aws.sdk.version>2.25.31</aws.sdk.version>
     </properties>
 
     <dependencies>
