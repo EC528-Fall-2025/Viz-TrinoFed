@@ -44,6 +44,30 @@ export interface QueryEvent {
   statistics?: Record<string, any> | null;
 }
 
+export interface Fragment {
+  fragmentId: number;
+  partitioningType: string;
+  cpuTime: string | null;
+  cpuTimeMs: number | null;
+  scheduledTime: string | null;
+  scheduledTimeMs: number | null;
+  blockedTime: string | null;
+  blockedTimeMs: number | null;
+  inputRows: number | null;
+  inputBytes: string | null;
+  inputBytesValue: number | null;
+  outputRows: number | null;
+  outputBytes: string | null;
+  outputBytesValue: number | null;
+  peakMemory: string | null;
+  peakMemoryBytes: number | null;
+  taskCount: number | null;
+  outputLayout: string | null;
+  outputPartitioning: string | null;
+  operators: string[];
+  rawText: string | null;
+}
+
 export interface QueryTree {
   queryId: string;
   query: string;
@@ -55,5 +79,22 @@ export interface QueryTree {
   errorMessage: string | null;
   root: QueryTreeNode | null;
   events: QueryEvent[];
+  fragments: Fragment[];
+}
+
+export interface AIAnalysisResponse {
+  queryId: string;
+  originalQuery: string;
+  optimizedQuery: string | null;
+  bottleneckAnalysis: string | null;
+  suggestions: string[] | null;
+  expectedImprovement: string | null;
+  error: string | null;
+  available: boolean;
+}
+
+export interface AIStatus {
+  available: boolean;
+  feature: string;
 }
 
