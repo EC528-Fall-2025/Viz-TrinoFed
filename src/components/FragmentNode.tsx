@@ -2,6 +2,7 @@ import * as React from "react";
 import { Box, Chip, Typography } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
 import { Fragment } from '../types/api.types';
+import CopyPaste from './CopyPaste';
 import { 
   Check,
   HourglassBottom,
