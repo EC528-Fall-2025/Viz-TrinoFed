@@ -4,6 +4,7 @@ import Help from '../pages/Help'
 import QueryHistory from '../pages/QueryHistory'
 import NotFound from '../pages/NotFound'
 import TreePage from '../pages/TreePage'
+import OverallStats from '../pages/OverallStats'
 
 // page routing for the app
 
@@ -15,6 +16,7 @@ const AppRoutes = () => {
         <Route path="/help" element={<Help />} />
         <Route path="/current-query" element={<Navigate to="/" replace/>} />
         <Route path="/query-history" element={<QueryHistory />} />
+        <Route path="/overall-stats" element={<OverallStats />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

@@ -11,6 +11,7 @@ export default function App() {
     { to: '/help', label: 'Help', testId: 'docs-link' },
     { to: '/query-history', label: 'Query History', testId: 'history-link' },
     { to: '/', label: 'Current Query', testId: 'current-link' },
+    { to: '/overall-stats', label: 'Overall Stats', testId: 'overall-stats-link' },
   ];
  
   return (
