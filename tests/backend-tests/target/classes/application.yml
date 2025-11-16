@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: trino-kafka-parser
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: trino-parser-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+      properties:
+        spring.json.trusted.packages: "*"
+
+    listener:
+      ack-mode: manual
+
+trino:
+  kafka:
+    topic: trino-query-events
+
+logging:
+  level:
+    com.trinofed.parser: DEBUG
+    org.springframework.kafka: INFO
