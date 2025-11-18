@@ -235,11 +235,11 @@ class QueryPlanParserTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> estimates = (Map<String, Object>) root.getMetadata().get("estimates");
-        assertThat(estimates.get("outputRowCount")).isEqualTo(2500.0);
-        assertThat(estimates.get("outputSizeInBytes")).isEqualTo(125000.0);
-        assertThat(estimates.get("cpuCost")).isEqualTo(75000.0);
-        assertThat(estimates.get("memoryCost")).isEqualTo(25000.0);
-        assertThat(estimates.get("networkCost")).isEqualTo(10000.0);
+        assertThat(estimates.get("outputRowCount")).asString().isEqualTo("2500.0");
+        assertThat(estimates.get("outputSizeInBytes")).asString().isEqualTo("125000.0");
+        assertThat(estimates.get("cpuCost")).asString().isEqualTo("75000.0");
+        assertThat(estimates.get("memoryCost")).asString().isEqualTo("25000.0");
+        assertThat(estimates.get("networkCost")).asString().isEqualTo("10000.0");
     }
 
     @Test

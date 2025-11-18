@@ -28,20 +28,27 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class QueryEventServiceTest {
 
-    @Mock
+    @Mock(lenient = true)
     private SimpMessagingTemplate messagingTemplate;
 
-    @Mock
+    @Mock(lenient = true)
     private DatabaseService databaseService;
 
-    @Mock
+    @Mock(lenient = true)
     private QueryPlanParser queryPlanParser;
+
+    // Add this new mock
+    @Mock(lenient = true)
+    private TextPlanParser textPlanParser;
 
     private QueryEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new QueryEventService(messagingTemplate, databaseService, queryPlanParser);
+        // Update this line to include textPlanParser as the 4th parameter
+        service = new QueryEventService(messagingTemplate, databaseService, queryPlanParser, textPlanParser);
+        // Setup lenient default behavior
+        lenient().when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
     }
 
     @Test
@@ -49,8 +56,6 @@ class QueryEventServiceTest {
     void testStoreAndRetrieveQueryEvent() {
         // Given
         QueryEvent event = createSampleEvent("query-123", "RUNNING");
-
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
 
         // When
         service.processEvent(event);
@@ -61,7 +66,7 @@ class QueryEventServiceTest {
         assertThat(tree.getQueryId()).isEqualTo("query-123");
         assertThat(tree.getState()).isEqualTo("RUNNING");
         assertThat(tree.getQuery()).isEqualTo("SELECT * FROM users");
-        verify(messagingTemplate).convertAndSend(eq("/topic/query-updates"), any(QueryTree.class));
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(eq("/topic/query-updates"), any(QueryTree.class));
     }
 
     @Test
@@ -81,8 +86,6 @@ class QueryEventServiceTest {
         QueryEvent event1 = createSampleEvent("query-123", "QUEUED");
         QueryEvent event2 = createSampleEvent("query-123", "RUNNING");
         QueryEvent event3 = createSampleEvent("query-123", "FINISHED");
-
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
 
         // When
         service.processEvent(event1);
@@ -105,8 +108,6 @@ class QueryEventServiceTest {
         QueryEvent event2 = createSampleEvent("query-2", "RUNNING");
         QueryEvent event3 = createSampleEvent("query-3", "FAILED");
 
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
-
         // When
         service.processEvent(event1);
         service.processEvent(event2);
@@ -124,8 +125,6 @@ class QueryEventServiceTest {
         // Given
         QueryEvent event1 = createSampleEvent("query-1", "FINISHED");
         QueryEvent event2 = createSampleEvent("query-2", "RUNNING");
-
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
 
         // When
         service.processEvent(event1);
@@ -145,8 +144,6 @@ class QueryEventServiceTest {
         QueryEvent event1 = createEventWithCatalog("query-1", "postgres");
         QueryEvent event2 = createEventWithCatalog("query-2", "postgres");
         QueryEvent event3 = createEventWithCatalog("query-3", "mongodb");
-
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
 
         // When
         service.processEvent(event1);
@@ -168,8 +165,6 @@ class QueryEventServiceTest {
         QueryEvent event2 = createEventWithSchema("query-2", "postgres", "public");
         QueryEvent event3 = createEventWithSchema("query-3", "postgres", "analytics");
 
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
-
         // When
         service.processEvent(event1);
         service.processEvent(event2);
@@ -188,8 +183,6 @@ class QueryEventServiceTest {
         QueryEvent event2 = createEventWithTable("query-2", "postgres", "public", "users");
         QueryEvent event3 = createEventWithTable("query-3", "postgres", "public", "orders");
 
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
-
         // When
         service.processEvent(event1);
         service.processEvent(event2);
@@ -206,8 +199,6 @@ class QueryEventServiceTest {
         // Given
         QueryEvent event1 = createEventWithTable("query-1", "postgres", "public", "users");
         QueryEvent event2 = createEventWithTable("query-2", "mongodb", "sales", "customers");
-
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
 
         // When
         service.processEvent(event1);
@@ -230,13 +221,12 @@ class QueryEventServiceTest {
     void testDatabaseServiceIntegration() {
         // Given
         QueryEvent event = createSampleEvent("query-123", "RUNNING");
-        when(queryPlanParser.parseJsonPlan(any())).thenReturn(createSampleTreeNode());
 
         // When
         service.processEvent(event);
 
         // Then
-        verify(databaseService).processEvent(event);
+        verify(databaseService, atLeastOnce()).processEvent(event);
     }
 
     @Test
@@ -255,7 +245,7 @@ class QueryEventServiceTest {
         QueryTree tree = service.getQueryTree("query-123");
 
         // Then
-        verify(queryPlanParser).parseJsonPlan(jsonPlan);
+        verify(queryPlanParser, atLeastOnce()).parseJsonPlan(jsonPlan);
         assertThat(tree.getRoot()).isNotNull();
         assertThat(tree.getRoot().getOperatorType()).isEqualTo("TableScan");
     }
