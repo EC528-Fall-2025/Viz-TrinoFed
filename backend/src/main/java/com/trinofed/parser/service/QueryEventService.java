@@ -35,6 +35,8 @@ public class QueryEventService {
         this.textPlanParser = textPlanParser;
     }
 
+    
+
     public void processEvent(QueryEvent event) {
         String queryId = event.getQueryId();
 
@@ -268,6 +270,7 @@ public class QueryEventService {
         return queryEvents.keySet().stream()
                 .map(this::buildQueryTree)
                 .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(QueryTree::getStartTime))
                 .toList();
     }
 
