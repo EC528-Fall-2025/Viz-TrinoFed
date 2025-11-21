@@ -14,9 +14,9 @@ services:
       # AWS Bedrock (optional)
       AWS_BEDROCK_ENABLED: ${AWS_BEDROCK_ENABLED:-false}
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      AWS_BEDROCK_MODEL_ID: ${AWS_BEDROCK_MODEL_ID}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_BEDROCK_MODEL_ID: ${AWS_BEDROCK_MODEL_ID:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       
       # Server config
       SERVER_PORT: 8080
@@ -24,7 +24,8 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
     networks:
       - viz-network
-    # Allow connecting to host services (Kafka on host machine)
+      - viz-trinofed_trino-network 
+      
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -43,3 +44,5 @@ services:
 networks:
   viz-network:
     driver: bridge
+  viz-trinofed_trino-network:
+    external: true
