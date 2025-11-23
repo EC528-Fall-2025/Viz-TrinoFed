@@ -1,10 +1,10 @@
 server:
   port: 8080
 
+# spring:
+#   application:
+#     name: trino-kafka-parser
 spring:
-  application:
-    name: trino-kafka-parser
-
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -15,14 +15,11 @@ spring:
       enable-auto-commit: true
       properties:
         spring.json.trusted.packages: "*"
-
     listener:
       ack-mode: manual
-
 trino:
   kafka:
     topic: trino-query-events
-
 logging:
   level:
     com.trinofed.parser: DEBUG

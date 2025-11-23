@@ -19,6 +19,7 @@ export default function QueryHistory() {
       try {
         const data = await apiService.getAllQueries();
         setQueries(data);
+        setError(null);
       } catch (err) {
         console.error('Failed to load query history:', err);
         setError('Failed to connect to backend');
@@ -26,7 +27,14 @@ export default function QueryHistory() {
         setLoading(false);
       }
     };
+    
+    // Load immediately
     loadQueries();
+    
+    // Auto-refresh every 3 seconds to pick up new queries
+    const interval = setInterval(loadQueries, 3000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleQueryClick = (queryId: string) => {
