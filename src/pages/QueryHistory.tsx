@@ -102,11 +102,11 @@ ${'-'.repeat(80)}
     };
   });
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
-  if (error) return <div style={{ padding: '20px', color: 'red' }}>{error}</div>;
+  if (loading) return <div style={{ height: '100%', overflowY: 'auto', padding: '20px' }}>Loading...</div>;
+  if (error) return <div style={{ height: '100%', overflowY: 'auto', padding: '20px', color: 'red' }}>{error}</div>;
 
   return (
-    <div ref={pageRef} style={{ padding: '20px', position: 'relative' }}>
+    <div ref={pageRef} style={{ height: '100%', overflowY: 'auto', padding: '20px', position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>Query History</h1>
         {queries.length > 0 && (
