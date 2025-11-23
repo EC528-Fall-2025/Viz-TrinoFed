@@ -22,7 +22,6 @@ export interface GraphProps {
     timeIntervalUnit: 'minute' | 'hour' | 'day' | 'second' | 'millisecond';
 }
 
-
 export default function Graph({ data, xLabel, yLabel, width, height, title, timestamps, timeInterval, timeIntervalUnit }: GraphProps) {
     const marginTop = 20;
     const marginRight = 20;
@@ -124,18 +123,7 @@ export default function Graph({ data, xLabel, yLabel, width, height, title, time
                 .attr("fill", "none")
                 .attr("stroke", "steelblue")
                 .attr("stroke-width", 2);
-            
-            // Add data points as circles
-            // svg.selectAll("circle")
-            //     .data(data)
-            //     .enter()
-            //     .append("circle")
-            //     .attr("cx", (d) => xScale(new Date(d.x)))
-            //     .attr("cy", (d) => yScale(d.y))
-            //     .attr("r", 4)
-            //     .attr("fill", "steelblue")
-            //     .attr("stroke", "white")
-            //     .attr("stroke-width", 1);
+        
         }
     }, [data, timestamps, width, height, xLabel, yLabel, title]);
 

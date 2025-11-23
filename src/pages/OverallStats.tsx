@@ -29,9 +29,17 @@ export default function OverallStats() {
             const totalRows: GraphData[] = [];
             const ts: Date[] = [];
             
+            // Use a Map to ensure one data point per timestamp (latest query wins if duplicates)
+            const durationMap = new Map<number, number>();
+            const cpuTimeMap = new Map<number, number>();
+            const peakMemoryMap = new Map<number, number>();
+            const totalRowsMap = new Map<number, number>();
+            const timestampSet = new Set<number>();
+            
             queries.forEach((query) => {
                 const timestamp = new Date(query.startTime);
-                ts.push(timestamp);
+                const timestampMs = timestamp.getTime();
+                timestampSet.add(timestampMs);
                 
                 // Find the COMPLETED event (has full statistics) or use the last event
                 const completedEvent = query.events.find(e => e.eventType === 'COMPLETED') || query.events[query.events.length - 1];
@@ -48,10 +56,8 @@ export default function OverallStats() {
                 } else if (completedEvent?.wallTimeMs) {
                     durationValue = completedEvent.wallTimeMs;
                 }
-                duration.push({
-                    x: timestamp.getTime(),
-                    y: durationValue
-                });
+                // Use latest value if timestamp already exists
+                durationMap.set(timestampMs, durationValue);
                 
                 // CPU Time - from statistics.cpuTime (in seconds) or cpuTimeMs
                 let cpuTimeValue = 0;
@@ -60,10 +66,7 @@ export default function OverallStats() {
                 } else if (completedEvent?.cpuTimeMs) {
                     cpuTimeValue = completedEvent.cpuTimeMs;
                 }
-                cpuTime.push({
-                    x: timestamp.getTime(),
-                    y: cpuTimeValue
-                });
+                cpuTimeMap.set(timestampMs, cpuTimeValue);
                 
                 // Peak Memory - from statistics.peakUserMemoryBytes or peakMemoryBytes
                 let peakMemoryValue = 0;
@@ -72,10 +75,7 @@ export default function OverallStats() {
                 } else if (completedEvent?.peakMemoryBytes) {
                     peakMemoryValue = completedEvent.peakMemoryBytes;
                 }
-                peakMemory.push({
-                    x: timestamp.getTime(),
-                    y: peakMemoryValue
-                });
+                peakMemoryMap.set(timestampMs, peakMemoryValue);
                 
                 // Total Rows - from statistics.outputRows or totalRows
                 let totalRowsValue = 0;
@@ -84,10 +84,29 @@ export default function OverallStats() {
                 } else if (completedEvent?.totalRows) {
                     totalRowsValue = completedEvent.totalRows;
                 }
-                totalRows.push({
-                    x: timestamp.getTime(),
-                    y: totalRowsValue
+                totalRowsMap.set(timestampMs, totalRowsValue);
+            });
+            
+            // Convert Maps to sorted arrays (by timestamp)
+            const sortedTimestamps = Array.from(timestampSet).sort((a, b) => a - b);
+            sortedTimestamps.forEach((timestampMs) => {
+                duration.push({
+                    x: timestampMs,
+                    y: durationMap.get(timestampMs) ?? 0
                 });
+                cpuTime.push({
+                    x: timestampMs,
+                    y: cpuTimeMap.get(timestampMs) ?? 0
+                });
+                peakMemory.push({
+                    x: timestampMs,
+                    y: peakMemoryMap.get(timestampMs) ?? 0
+                });
+                totalRows.push({
+                    x: timestampMs,
+                    y: totalRowsMap.get(timestampMs) ?? 0
+                });
+                ts.push(new Date(timestampMs));
             });
             
             setDurationData(duration);
