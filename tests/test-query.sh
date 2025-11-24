@@ -4,7 +4,7 @@ echo "🧪 Testing Trino Query Events System..."
 echo ""
 
 echo "1️⃣ Running test query on Trino..."
-docker exec -it trino trino --execute "SELECT 1 as test_value"
+docker exec trino trino --execute "SELECT 1 as test_value"
 
 echo ""
 echo "2️⃣ Waiting 5 seconds for Kafka events to be processed..."

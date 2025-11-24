@@ -704,7 +704,7 @@ const TreePage: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100vh',
+          height: '100%',
           fontSize: '18px',
         }}
       >
@@ -721,7 +721,7 @@ const TreePage: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100vh',
+          height: '100%',
           color: 'red',
           fontSize: '16px',
           padding: '20px',
@@ -734,7 +734,7 @@ const TreePage: React.FC = () => {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       {/* Historical Query Banner */}
       {queryId && currentQuery && (
         <div style={{
