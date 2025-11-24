@@ -1,6 +1,9 @@
 server:
   port: ${SERVER_PORT:8080}
 
+# spring:
+#   application:
+#     name: trino-kafka-parser
 spring:
   application:
     name: trino-kafka-parser
@@ -16,7 +19,6 @@ spring:
         spring.json.trusted.packages: "*"
     listener:
       ack-mode: manual
-
 trino:
   kafka:
     topic: ${TRINO_KAFKA_TOPIC:trino-query-events}

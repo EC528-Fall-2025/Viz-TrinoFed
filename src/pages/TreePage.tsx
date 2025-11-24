@@ -20,6 +20,8 @@ import UnifiedMetricsPanel from '../components/UnifiedMetricsPanel';
 import { apiService } from '../services/api.service';
 import { QueryTree, QueryTreeNode, Fragment } from '../types/api.types';
 import { Database } from '../types/database.types';
+// --- NEW IMPORT ---
+import { parseTrinoQueryPlan } from '../utils/TrinoGraph';
 
 const elk = new ELK();
 const NODE_W = 300;
@@ -350,9 +352,6 @@ function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], q
       ...sortedFragments.filter(f => f.fragmentId !== maxFragmentId));
   }
 
-  console.log('Source Fragments:', sourceFragments.map(f => ({ id: f.fragmentId, type: f.partitioningType })));
-  console.log('Non-Source Fragments:', nonSourceFragments.map(f => ({ id: f.fragmentId, type: f.partitioningType })));
-
   // Layout source fragments VERTICALLY (middle column)
   const SOURCE_VERTICAL_SPACING = 200;
   const SOURCE_START_X = -50;
@@ -558,37 +557,67 @@ const TreePage: React.FC = () => {
         setSelectedDatabase(null);
       }
 
-      // FIX: Prevent re-render if data hasn't changed
       if (currentQuery?.queryId === queryToDisplay.queryId && currentQuery?.state === queryToDisplay.state) {
-        setCurrentQuery(queryToDisplay); // Still update state, but skip re-render
+        setCurrentQuery(queryToDisplay); 
         return; 
       }
       
       setCurrentQuery(queryToDisplay);
 
-      let rfNodes: Node[];
-      let rfEdges: Edge[];
+      let rfNodes: Node[] = [];
+      let rfEdges: Edge[] = [];
 
-      if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
-        const result = convertFragmentsToNodes(queryToDisplay.fragments, databases, queryToDisplay);
-        rfNodes = result.nodes;
-        rfEdges = result.edges;
-      } else {
-        const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
-        let nodesToVisualize: QueryNodeData[];
-        
-        if (hasComplexTree && queryToDisplay.root) {
-          nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
-        } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
-          nodesToVisualize = createEventTimeline(queryToDisplay);
-        } else {
-          setError('No visualization data available');
-          setLoading(false);
-          return;
+      const queryDataAny = queryToDisplay as any;
+      
+      // 1. ROBUST PLAN FINDING - Check root, then nested events
+      let jsonPlan = queryDataAny.jsonPlan;
+      if (!jsonPlan && queryToDisplay.events) {
+        const eventWithPlan = queryToDisplay.events.find((e: any) => e.jsonPlan);
+        if (eventWithPlan) {
+          jsonPlan = (eventWithPlan as any).jsonPlan;
         }
-        const result = toReactFlow(nodesToVisualize, databases);
-        rfNodes = result.nodes;
-        rfEdges = result.edges;
+      }
+
+      // 2. TRY PARSING IF PLAN EXISTS
+      if (jsonPlan) {
+        console.log("Found jsonPlan, attempting DAG layout...");
+        const result = parseTrinoQueryPlan({
+          jsonPlan: jsonPlan,
+          fragments: queryToDisplay.fragments || [],
+          state: queryToDisplay.state,
+          databases: databases // <--- PASS DATABASES HERE
+        });
+        
+        if (result.nodes.length > 0) {
+          rfNodes = result.nodes;
+          rfEdges = result.edges;
+        }
+      } 
+
+      // 3. FALLBACK (Old Logic)
+      if (rfNodes.length === 0) {
+        console.log("No jsonPlan found or parsing failed. Using fallback layout.");
+        if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
+           const result = convertFragmentsToNodes(queryToDisplay.fragments, databases, queryToDisplay);
+           rfNodes = result.nodes;
+           rfEdges = result.edges;
+        } else {
+           const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
+           let nodesToVisualize: QueryNodeData[];
+           
+           if (hasComplexTree && queryToDisplay.root) {
+             nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
+           } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
+             nodesToVisualize = createEventTimeline(queryToDisplay);
+           } else {
+             setError('No visualization data available');
+             setLoading(false);
+             return;
+           }
+           const result = toReactFlow(nodesToVisualize, databases);
+           rfNodes = result.nodes;
+           rfEdges = result.edges;
+        }
       }
       
       setNodes(rfNodes);
@@ -633,14 +662,28 @@ const TreePage: React.FC = () => {
   );
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    if (node.type === 'fragmentNode') {
-      setSelectedFragment(node.data.fragment);
-      setSelectedDatabase(null); // Clear database selection
+    if (node.type === 'fragmentNode' || node.type === 'queryNode') {
+        // Check if it's a fragment-based node (from new parser) or old query node
+        if (node.data.node && (node.data.node as any).stage?.startsWith('Fragment')) {
+             // For new parser nodes, map the ID back to the fragment list
+             const fragId = parseInt(node.id);
+             const fragment = currentQuery?.fragments?.find(f => f.fragmentId === fragId);
+             if (fragment) {
+                 setSelectedFragment(fragment);
+                 setSelectedDatabase(null);
+                 return;
+             }
+        }
+        // Fallback for old "fragmentNode" type
+        if (node.data.fragment) {
+             setSelectedFragment(node.data.fragment as Fragment);
+             setSelectedDatabase(null);
+        }
     } else if (node.type === 'databaseNode') {
-      setSelectedDatabase(node.data); // Set database selection
-      setSelectedFragment(null); // Clear fragment selection
+      setSelectedDatabase(node.data as Database); 
+      setSelectedFragment(null); 
     }
-  }, []);
+  }, [currentQuery]);
 
   const onPaneClick = useCallback(() => {
     setSelectedFragment(null);
@@ -661,7 +704,7 @@ const TreePage: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100vh',
+          height: '100%',
           fontSize: '18px',
         }}
       >
@@ -678,7 +721,7 @@ const TreePage: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100vh',
+          height: '100%',
           color: 'red',
           fontSize: '16px',
           padding: '20px',
@@ -691,7 +734,7 @@ const TreePage: React.FC = () => {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       {/* Historical Query Banner */}
       {queryId && currentQuery && (
         <div style={{
@@ -731,28 +774,54 @@ const TreePage: React.FC = () => {
               🕒 {new Date(currentQuery.startTime).toLocaleString()}
             </div>
           </div>
-          <button
-            onClick={handleBackToLatest}
-            style={{
-              backgroundColor: '#1976d2',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#1565c0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#1976d2';
-            }}
-          >
-            ⬅️ Back to Latest
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={() => navigate('/query-history')}
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#1976d2',
+                border: '2px solid #1976d2',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.borderColor = '#1565c0';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ffffff';
+                e.currentTarget.style.borderColor = '#1976d2';
+              }}
+            >
+              📜 Query History
+            </button>
+            <button
+              onClick={handleBackToLatest}
+              style={{
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#1565c0';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1976d2';
+              }}
+            >
+              ⬅️ Back to Latest
+            </button>
+          </div>
         </div>
       )}
       
@@ -788,7 +857,7 @@ const TreePage: React.FC = () => {
           maxZoom: 1.5,
           minZoom: 0.5,
         }}
-        proOptions={proOptions}
+        proOptions={proOptions} 
         nodeExtent={[[ -800, -200 ], [ 20000, 12000 ]]}
       >
         <Background />
