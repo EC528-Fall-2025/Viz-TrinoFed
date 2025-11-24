@@ -2,7 +2,8 @@
 import AppRoutes from './routing/AppRoutes';
 import {Stack, Box, AppBar, Toolbar} from '@mui/material';
 import NavButton from './NavButton';
-import { useLocation } from 'react-router-dom';
+import {Link as RouterLink, useLocation } from 'react-router-dom';
+import { QueryResultsProvider } from './contexts/QueryResultsContext';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -13,7 +14,7 @@ export default function App() {
     { to: '/', label: 'Current Query', testId: 'current-link' },
     { to: '/overall-stats', label: 'Overall Stats', testId: 'overall-stats-link' },
   ];
- 
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <AppBar sx={{backgroundColor: 'white', color: 'black', zIndex: (theme) => theme.zIndex.drawer + 1}} position="static" elevation={1}>
