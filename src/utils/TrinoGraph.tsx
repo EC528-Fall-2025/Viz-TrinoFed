@@ -174,7 +174,7 @@ export const parseTrinoQueryPlan = (data: TrinoQueryData) => {
     const numericId = parseInt(fragmentId);
     const originalFragment = data.fragments?.find(f => f.fragmentId === numericId);
     const nodePos = g.node(fragmentId);
-    
+
     const fragmentData: Fragment = {
       ...originalFragment,
       fragmentId: numericId,
@@ -190,15 +190,79 @@ export const parseTrinoQueryPlan = (data: TrinoQueryData) => {
     nodes.push({
       id: fragmentId,
       type: 'fragmentNode',
-      position: { 
-        x: nodePos.x - (280 / 2), 
-        y: nodePos.y - (200 / 2) 
+      position: {
+        x: nodePos.x - (280 / 2),
+        y: nodePos.y - (200 / 2)
       },
       data: { fragment: fragmentData },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
     });
   });
+
+  // 6. Add Output Node
+  // Find Fragment 0 (final output fragment)
+  const fragment0 = data.fragments?.find(f => f.fragmentId === 0);
+
+  // Find the rightmost fragment (fragment with no outgoing edges)
+  const finalFragmentIds = allFragmentIds.filter(id => {
+    return !allFragmentIds.some(otherId => {
+      return incomingEdges[otherId]?.includes(id);
+    });
+  });
+
+  // Use Fragment 0 or the first final fragment as the output source
+  const outputSourceFragmentId = finalFragmentIds.includes('0') ? '0' : finalFragmentIds[0];
+
+  if (outputSourceFragmentId) {
+    const outputNodeId = 'output_node';
+    const sourcePos = g.node(outputSourceFragmentId);
+
+    // Parse output columns from Fragment 0's outputLayout
+    let outputColumns: string[] = [];
+    if (fragment0?.outputLayout) {
+      outputColumns = fragment0.outputLayout
+        .split(',')
+        .map(col => col.trim().split(':')[0].replace(/[\[\]]/g, '').trim())
+        .filter(col => col.length > 0);
+    }
+
+    // Position output node to the right of the final fragment
+    const outputX = sourcePos.x + 280 / 2 + 200; // fragment center + half width + spacing
+    const outputY = sourcePos.y;
+
+    // Create output node
+    nodes.push({
+      id: outputNodeId,
+      type: 'outputNode',
+      position: {
+        x: outputX - (280 / 2),
+        y: outputY - (140 / 2)
+      },
+      data: {
+        queryId: (data as any).queryId || 'unknown',
+        query: (data as any).query || '',
+        state: data.state,
+        totalRows: (data as any).totalRows ?? null,
+        executionTime: (data as any).totalExecutionTime ?? null,
+        outputLayout: fragment0?.outputLayout ?? null,
+        outputColumns: outputColumns.length > 0 ? outputColumns : undefined,
+      },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+
+    // Connect final fragment to output node
+    edges.push({
+      id: `e-${outputSourceFragmentId}-output`,
+      source: outputSourceFragmentId,
+      target: outputNodeId,
+      sourceHandle: 'out',
+      targetHandle: 'in',
+      type: 'directed',
+      style: { stroke: '#2e7d32', strokeWidth: 3 },
+    });
+  }
 
   return { nodes, edges };
 };
