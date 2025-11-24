@@ -625,7 +625,6 @@ const TreePage: React.FC = () => {
       setError(null);
       setLoading(false);
     } catch (err) {
-      console.error('Failed to load data:', err);
       if (!queryId) {
         setError('Failed to connect to backend. Make sure backend is running on http://localhost:8080');
       }
