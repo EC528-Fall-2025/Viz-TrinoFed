@@ -24,13 +24,18 @@ public class QueryEventService {
     private final SimpMessagingTemplate messagingTemplate;
     private final DatabaseService databaseService;
     private final QueryPlanParser queryPlanParser;
+    private final TextPlanParser textPlanParser;
 
     @Autowired
-    public QueryEventService(SimpMessagingTemplate messagingTemplate, DatabaseService databaseService, QueryPlanParser queryPlanParser) {
+    public QueryEventService(SimpMessagingTemplate messagingTemplate, DatabaseService databaseService, 
+                           QueryPlanParser queryPlanParser, TextPlanParser textPlanParser) {
         this.messagingTemplate = messagingTemplate;
         this.databaseService = databaseService;
         this.queryPlanParser = queryPlanParser;
+        this.textPlanParser = textPlanParser;
     }
+
+    
 
     public void processEvent(QueryEvent event) {
         String queryId = event.getQueryId();
@@ -88,6 +93,19 @@ public class QueryEventService {
         // Build tree structure from stage stats and operator stats
         QueryTreeNode root = buildTreeFromEvents(events);
 
+        // Parse fragments from plan text if available
+        List<com.trinofed.parser.model.Fragment> fragments = new ArrayList<>();
+        for (QueryEvent event : events) {
+            if (event.getPlan() != null && !event.getPlan().trim().isEmpty()) {
+                log.info("Parsing fragments from text plan for query: {}", event.getQueryId());
+                fragments = textPlanParser.parseTextPlan(event.getPlan());
+                if (!fragments.isEmpty()) {
+                    log.info("Successfully parsed {} fragments from text plan", fragments.size());
+                    break; // Use the first available plan
+                }
+            }
+        }
+
         return QueryTree.builder()
                 .queryId(queryId)
                 .query(latestEvent.getQuery())
@@ -99,6 +117,7 @@ public class QueryEventService {
                 .errorMessage(latestEvent.getErrorMessage())
                 .root(root)
                 .events(new ArrayList<>(events))
+                .fragments(fragments)
                 .build();
     }
 
@@ -251,6 +270,7 @@ public class QueryEventService {
         return queryEvents.keySet().stream()
                 .map(this::buildQueryTree)
                 .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(QueryTree::getStartTime))
                 .toList();
     }
 

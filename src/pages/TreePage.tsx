@@ -13,19 +13,27 @@ import { Position } from '@xyflow/react';
 import DirectedEdge from '../components/DirectedEdge';
 import { QueryRFNode, QueryNodeData } from '../components/Node';
 import DatabaseNode from '../components/DatabaseNode';
+import { FragmentNode } from '../components/FragmentNode';
+import { OutputNode } from '../components/OutputNode';
 import QueryPlanPanel from '../components/QueryPlanPanel';
 import UnifiedMetricsPanel from '../components/UnifiedMetricsPanel';
 import { apiService } from '../services/api.service';
-import { QueryTree, QueryTreeNode } from '../types/api.types';
+import { QueryTree, QueryTreeNode, Fragment } from '../types/api.types';
 import { Database } from '../types/database.types';
+// --- NEW IMPORT ---
+import { parseTrinoQueryPlan } from '../utils/TrinoGraph';
 
 const elk = new ELK();
 const NODE_W = 300;
 const NODE_H = 160;
 const DB_NODE_W = 350;
 const DB_NODE_H = 200;
+const FRAGMENT_NODE_W = 320;
+const FRAGMENT_NODE_H = 200;
+const OUTPUT_NODE_W = 280;
+const OUTPUT_NODE_H = 140;
 const directedEdgeTypes = { directed: DirectedEdge };
-const nodeTypes = { queryNode: QueryRFNode, databaseNode: DatabaseNode };
+const nodeTypes = { queryNode: QueryRFNode, databaseNode: DatabaseNode, fragmentNode: FragmentNode, outputNode: OutputNode };
 const proOptions: ProOptions = { hideAttribution: true };
 
 // Map state to status
@@ -180,12 +188,15 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
   const rfEdges: Edge[] = [];
   const seen = new Set<string>();
 
-  // Add database nodes
+  // Add database nodes in a vertical column
+  const DB_VERTICAL_SPACING = 250; // Space between database nodes
+  const DB_START_Y = 0; // Starting Y position for database nodes
+  
   databases.forEach((db, index) => {
     rfNodes.push({
       id: `db_${db.id}`,
       type: 'databaseNode',
-      position: { x: -500, y: index * (DB_NODE_H + 50) },
+      position: { x: -600, y: DB_START_Y + (index * DB_VERTICAL_SPACING) },
       data: { ...db, label: db.name },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
@@ -210,19 +221,29 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
 
   nodes.forEach(addNode);
 
-  // Connect databases to query nodes - fix to connect to left side
+  // Find the first non-database node (entry point to the query processing)
   const queryNodes = rfNodes.filter(n => n.type === 'queryNode');
-  const firstQueryNode = queryNodes[0];
+  const allQueryIds = new Set(queryNodes.map(n => n.id));
   
-  if (firstQueryNode) {
-    databases.forEach(db => {
-      // Connect database right handle to query node left handle
+  // A node is a "first node" if it's not referenced as a child or next node by any other node
+  const firstNodes = queryNodes.filter(qn => {
+    const isChild = nodes.some(n => n.children?.some(c => c.id === qn.id));
+    const isNext = nodes.some(n => n.next?.id === qn.id);
+    return !isChild && !isNext;
+  });
+
+  // If no clear first nodes, use the first query node
+  const targetNodes = firstNodes.length > 0 ? firstNodes : (queryNodes.length > 0 ? [queryNodes[0]] : []);
+  
+  // Connect ALL database nodes to ALL first non-database nodes
+  databases.forEach(db => {
+    targetNodes.forEach(targetNode => {
       rfEdges.push({
-        id: `db_${db.id}__to__${firstQueryNode.id}`,
+        id: `db_${db.id}__to__${targetNode.id}`,
         source: `db_${db.id}`,
-        sourceHandle: 'right', // Use right handle from database
-        target: firstQueryNode.id,
-        targetHandle: 'in', // Use left handle on query node
+        sourceHandle: 'right',
+        target: targetNode.id,
+        targetHandle: 'in',
         type: 'directed',
         style: { 
           stroke: '#6c757d', 
@@ -237,7 +258,7 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
         },
       });
     });
-  }
+  });
 
   // Child edges: parent -> child (top→bottom handles)
   const addChildEdges = (n: QueryNodeData) => {
@@ -284,10 +305,216 @@ function toReactFlow(nodes: QueryNodeData[], databases: Database[]) {
   return { nodes: rfNodes, edges: rfEdges };
 }
 
-const getInitialPanelState = () => {
-  if (typeof window === 'undefined') return true;
-  return window.innerWidth > 768;
-};
+// Convert fragments to ReactFlow nodes and edges
+function convertFragmentsToNodes(fragments: Fragment[], databases: Database[], queryTree: QueryTree) {
+  const rfNodes: Node[] = [];
+  const rfEdges: Edge[] = [];
+
+  // Add database nodes in a vertical column (far left)
+  const DB_VERTICAL_SPACING = 250;
+  const DB_START_Y = 0;
+  
+  databases.forEach((db, index) => {
+    rfNodes.push({
+      id: `db_${db.id}`,
+      type: 'databaseNode',
+      position: { x: -600, y: DB_START_Y + (index * DB_VERTICAL_SPACING) },
+      data: { ...db, label: db.name },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+  });
+
+  // Sort fragments by fragmentId in descending order (Trino convention: higher IDs = sources)
+  const sortedFragments = [...fragments].sort((a, b) => b.fragmentId - a.fragmentId);
+  
+  // Identify source fragments: fragments that read directly from tables
+  // These typically have SOURCE or SCAN partitioning and are leaf nodes
+  const sourceFragments = sortedFragments.filter(f => 
+    f.partitioningType === 'SOURCE' || 
+    f.partitioningType?.includes('SCAN') ||
+    // Also check if operators contain TableScan or similar
+    f.operators?.some(op => 
+      op.operatorType?.includes('TableScan') || 
+      op.operatorType?.includes('Scan') ||
+      op.operatorType?.includes('Source')
+    )
+  );
+  
+  const nonSourceFragments = sortedFragments.filter(f => !sourceFragments.includes(f));
+
+  // Fallback: if no source fragments detected via partitioning/operators,
+  // use fragments with highest IDs as sources
+  if (sourceFragments.length === 0 && sortedFragments.length > 0) {
+    const maxFragmentId = Math.max(...sortedFragments.map(f => f.fragmentId));
+    sourceFragments.push(...sortedFragments.filter(f => f.fragmentId === maxFragmentId));
+    nonSourceFragments.splice(0, nonSourceFragments.length, 
+      ...sortedFragments.filter(f => f.fragmentId !== maxFragmentId));
+  }
+
+  // Layout source fragments VERTICALLY (middle column)
+  const SOURCE_VERTICAL_SPACING = 200;
+  const SOURCE_START_X = -50;
+  const SOURCE_START_Y = 0;
+  
+  sourceFragments.forEach((fragment, index) => {
+    rfNodes.push({
+      id: `fragment_${fragment.fragmentId}`,
+      type: 'fragmentNode',
+      position: { 
+        x: SOURCE_START_X, 
+        y: SOURCE_START_Y + (index * SOURCE_VERTICAL_SPACING)
+      },
+      data: { fragment },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+  });
+
+  // Layout non-source fragments HORIZONTALLY (right side)
+  const NON_SOURCE_HORIZONTAL_SPACING = 400;
+  const NON_SOURCE_START_X = 400;
+  const NON_SOURCE_Y = SOURCE_START_Y + ((sourceFragments.length - 1) * SOURCE_VERTICAL_SPACING) / 2;
+  
+  nonSourceFragments.forEach((fragment, index) => {
+    rfNodes.push({
+      id: `fragment_${fragment.fragmentId}`,
+      type: 'fragmentNode',
+      position: { 
+        x: NON_SOURCE_START_X + (index * NON_SOURCE_HORIZONTAL_SPACING), 
+        y: NON_SOURCE_Y
+      },
+      data: { fragment },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    });
+  });
+
+  // Get Fragment 0 for output information
+  const fragment0 = fragments.find(f => f.fragmentId === 0);
+  
+  // Parse output columns from Fragment 0's outputLayout
+  let outputColumns: string[] = [];
+  if (fragment0?.outputLayout) {
+    outputColumns = fragment0.outputLayout
+      .split(',')
+      .map(col => col.trim().split(':')[0].replace(/[\[\]]/g, '').trim())
+      .filter(col => col.length > 0);
+  }
+
+  // Add output node at the end of the horizontal chain
+  const OUTPUT_X = NON_SOURCE_START_X + (nonSourceFragments.length * NON_SOURCE_HORIZONTAL_SPACING);
+  rfNodes.push({
+    id: 'output_node',
+    type: 'outputNode',
+    position: { 
+      x: OUTPUT_X, 
+      y: NON_SOURCE_Y
+    },
+    data: {
+      queryId: queryTree.queryId,
+      query: queryTree.query,
+      state: queryTree.state,
+      totalRows: queryTree.events?.find(e => e.totalRows)?.totalRows ?? null,
+      executionTime: queryTree.totalExecutionTime,
+      outputLayout: fragment0?.outputLayout ?? null,
+      outputColumns: outputColumns.length > 0 ? outputColumns : undefined,
+    },
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
+  });
+
+  // Connect ALL source fragments' RIGHT edges to FIRST non-source fragment's LEFT edge
+  const firstNonSourceFragment = nonSourceFragments.length > 0 ? nonSourceFragments[0] : fragment0;
+  
+  if (firstNonSourceFragment) {
+    sourceFragments.forEach(sourceFragment => {
+      rfEdges.push({
+        id: `fragment_${sourceFragment.fragmentId}_to_${firstNonSourceFragment.fragmentId}`,
+        source: `fragment_${sourceFragment.fragmentId}`,
+        sourceHandle: 'out',
+        target: `fragment_${firstNonSourceFragment.fragmentId}`,
+        targetHandle: 'in',
+        type: 'directed',
+        style: { stroke: '#1976d2', strokeWidth: 3 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#1976d2', width: 20, height: 20 },
+      });
+    });
+  }
+
+  // Create sequential edges between NON-SOURCE fragments (horizontal flow: left to right)
+  for (let i = 0; i < nonSourceFragments.length - 1; i++) {
+    const currentFragment = nonSourceFragments[i];
+    const nextFragment = nonSourceFragments[i + 1];
+    
+    rfEdges.push({
+      id: `fragment_${currentFragment.fragmentId}_to_${nextFragment.fragmentId}`,
+      source: `fragment_${currentFragment.fragmentId}`,
+      sourceHandle: 'out',
+      target: `fragment_${nextFragment.fragmentId}`,
+      targetHandle: 'in',
+      type: 'directed',
+      style: { stroke: '#1976d2', strokeWidth: 3 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#1976d2', width: 20, height: 20 },
+    });
+  }
+
+  // Connect last non-source fragment to Output Node
+  const lastNonSourceFragment = nonSourceFragments.length > 0 ? nonSourceFragments[nonSourceFragments.length - 1] : null;
+  
+  if (lastNonSourceFragment) {
+    rfEdges.push({
+      id: `fragment_${lastNonSourceFragment.fragmentId}_to_output`,
+      source: `fragment_${lastNonSourceFragment.fragmentId}`,
+      sourceHandle: 'out',
+      target: 'output_node',
+      targetHandle: 'in',
+      type: 'directed',
+      style: { stroke: '#2e7d32', strokeWidth: 3 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#2e7d32', width: 20, height: 20 },
+    });
+  } else if (fragment0 && sourceFragments.length > 0) {
+    sourceFragments.forEach(sourceFragment => {
+      rfEdges.push({
+        id: `fragment_${sourceFragment.fragmentId}_to_output`,
+        source: `fragment_${sourceFragment.fragmentId}`,
+        sourceHandle: 'out',
+        target: 'output_node',
+        targetHandle: 'in',
+        type: 'directed',
+        style: { stroke: '#2e7d32', strokeWidth: 3 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#2e7d32', width: 20, height: 20 },
+      });
+    });
+  }
+
+  // Connect database nodes ONLY to source fragments (horizontal connections)
+  databases.forEach(db => {
+    sourceFragments.forEach(sourceFragment => {
+      rfEdges.push({
+        id: `db_${db.id}_to_fragment_${sourceFragment.fragmentId}`,
+        source: `db_${db.id}`,
+        sourceHandle: 'right',
+        target: `fragment_${sourceFragment.fragmentId}`,
+        targetHandle: 'in',
+        type: 'directed',
+        style: { 
+          stroke: '#6c757d', 
+          strokeWidth: 2, 
+          strokeDasharray: '5,5' 
+        },
+        markerEnd: { 
+          type: MarkerType.ArrowClosed, 
+          color: '#6c757d', 
+          width: 16, 
+          height: 16 
+        },
+      });
+    });
+  });
+
+  return { nodes: rfNodes, edges: rfEdges };
+}
 
 const TreePage: React.FC = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -295,104 +522,127 @@ const TreePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentQuery, setCurrentQuery] = useState<QueryTree | null>(null);
-  const [selectedFragmentId, setSelectedFragmentId] = useState<string | null>(null);
-  const [isMetricsPanelOpen, setMetricsPanelOpen] = useState<boolean>(getInitialPanelState);
+  const [selectedFragment, setSelectedFragment] = useState<Fragment | null>(null);
+  const [selectedDatabase, setSelectedDatabase] = useState<Database | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryId = searchParams.get('queryId');
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load databases
-        const databases = await apiService.getDatabases();
-        
-        let queryToDisplay: QueryTree;
-        
-        if (queryId) {
-          // Historical mode: fetch specific query
-          queryToDisplay = await apiService.getQueryById(queryId);
-        } else {
-          // Live mode: fetch latest query
-          const allQueries = await apiService.getAllQueries();
-          
-          // Filter out system queries
-          const queries = allQueries.filter(query => 
-            query.user && 
-            query.user !== 'system' && 
-            !query.user.startsWith('$') &&
-            query.queryId &&
-            !query.queryId.includes('system')
-          );
-          
-          if (queries.length === 0) {
-            setError('No user queries found. Run a query in Trino to see visualization.');
-            setLoading(false);
-            return;
-          }
-          
-          queryToDisplay = queries[queries.length - 1];
-        }
-        
-        // Always update current query, even during subsequent updates
-        setCurrentQuery(queryToDisplay);
+  const loadData = useCallback(async () => {
+    try {
+      const databases = await apiService.getDatabases();
+      let queryToDisplay: QueryTree;
 
-        // Check if we have a complex tree structure or just simple events
-        const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
-        
-        let nodesToVisualize: QueryNodeData[];
-        let isEventTimeline = false;
-        
-        if (hasComplexTree && queryToDisplay.root) {
-          // Convert backend data to QueryNodeData format for complex trees
-          nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
-          isEventTimeline = false;
-        } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
-          // Create event timeline for simple queries
-          nodesToVisualize = createEventTimeline(queryToDisplay);
-          isEventTimeline = true;
-        } else {
-          setError('No visualization data available');
+      if (queryId) {
+        queryToDisplay = await apiService.getQueryById(queryId);
+      } else {
+        const allQueries = await apiService.getAllQueries();
+        const queries = allQueries.filter(query => 
+          query.user && 
+          query.user !== 'system' && 
+          !query.user.startsWith('$') &&
+          query.queryId &&
+          !query.queryId.includes('system')
+        );
+        if (queries.length === 0) {
+          setError('No user queries found. Run a query in Trino to see visualization.');
           setLoading(false);
           return;
         }
-          
-        // Generate React Flow nodes and edges with databases
-        const { nodes: rfNodes, edges: rfEdges } = toReactFlow(nodesToVisualize, databases);
-        const enhancedNodes = rfNodes.map(node =>
-          node.type === 'queryNode'
-            ? { ...node, data: { ...(node.data || {}), onSelect: (fragmentId: string) => {
-                  setSelectedFragmentId(fragmentId);
-                  setMetricsPanelOpen(true);
-                } } }
-            : node
-        );
-        
-        // Use dagre layout for all trees (ELK has issues with port references)
-        // Apply dagre layout to all nodes
-        setNodes(enhancedNodes);
-        setEdges(rfEdges);
-        setError(null);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to load data:', err);
-        setError('Failed to connect to backend. Make sure backend is running on http://localhost:8080');
-        setLoading(false);
+        queryToDisplay = queries[queries.length - 1];
       }
-    };
 
+      if (currentQuery?.queryId !== queryToDisplay.queryId) {
+        setSelectedFragment(null);
+        setSelectedDatabase(null);
+      }
+
+      if (currentQuery?.queryId === queryToDisplay.queryId && currentQuery?.state === queryToDisplay.state) {
+        setCurrentQuery(queryToDisplay); 
+        return; 
+      }
+      
+      setCurrentQuery(queryToDisplay);
+
+      let rfNodes: Node[] = [];
+      let rfEdges: Edge[] = [];
+
+      const queryDataAny = queryToDisplay as any;
+      
+      // 1. ROBUST PLAN FINDING - Check root, then nested events
+      let jsonPlan = queryDataAny.jsonPlan;
+      if (!jsonPlan && queryToDisplay.events) {
+        const eventWithPlan = queryToDisplay.events.find((e: any) => e.jsonPlan);
+        if (eventWithPlan) {
+          jsonPlan = (eventWithPlan as any).jsonPlan;
+        }
+      }
+
+      // 2. TRY PARSING IF PLAN EXISTS
+      if (jsonPlan) {
+        console.log("Found jsonPlan, attempting DAG layout...");
+        const result = parseTrinoQueryPlan({
+          jsonPlan: jsonPlan,
+          fragments: queryToDisplay.fragments || [],
+          state: queryToDisplay.state,
+          databases: databases // <--- PASS DATABASES HERE
+        });
+        
+        if (result.nodes.length > 0) {
+          rfNodes = result.nodes;
+          rfEdges = result.edges;
+        }
+      } 
+
+      // 3. FALLBACK (Old Logic)
+      if (rfNodes.length === 0) {
+        console.log("No jsonPlan found or parsing failed. Using fallback layout.");
+        if (queryToDisplay.fragments && queryToDisplay.fragments.length > 0) {
+           const result = convertFragmentsToNodes(queryToDisplay.fragments, databases, queryToDisplay);
+           rfNodes = result.nodes;
+           rfEdges = result.edges;
+        } else {
+           const hasComplexTree = queryToDisplay.root?.children && queryToDisplay.root.children.length > 0;
+           let nodesToVisualize: QueryNodeData[];
+           
+           if (hasComplexTree && queryToDisplay.root) {
+             nodesToVisualize = [convertToQueryNodeData(queryToDisplay.root)];
+           } else if (queryToDisplay.events && queryToDisplay.events.length > 0) {
+             nodesToVisualize = createEventTimeline(queryToDisplay);
+           } else {
+             setError('No visualization data available');
+             setLoading(false);
+             return;
+           }
+           const result = toReactFlow(nodesToVisualize, databases);
+           rfNodes = result.nodes;
+           rfEdges = result.edges;
+        }
+      }
+      
+      setNodes(rfNodes);
+      setEdges(rfEdges);
+      setError(null);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+      if (!queryId) {
+        setError('Failed to connect to backend. Make sure backend is running on http://localhost:8080');
+      }
+      setLoading(false);
+    }
+  }, [queryId, currentQuery]);
+
+  useEffect(() => {
     loadData();
-    
-    // Only set up auto-refresh if not viewing a historical query
     let interval: NodeJS.Timeout | null = null;
     if (!queryId) {
       interval = setInterval(loadData, 2000);
     }
-    
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [queryId]);
+  }, [queryId, loadData]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes(ns => applyNodeChanges(changes, ns)),
@@ -411,24 +661,41 @@ const TreePage: React.FC = () => {
     []
   );
 
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    if (node.type === 'fragmentNode' || node.type === 'queryNode') {
+        // Check if it's a fragment-based node (from new parser) or old query node
+        if (node.data.node && (node.data.node as any).stage?.startsWith('Fragment')) {
+             // For new parser nodes, map the ID back to the fragment list
+             const fragId = parseInt(node.id);
+             const fragment = currentQuery?.fragments?.find(f => f.fragmentId === fragId);
+             if (fragment) {
+                 setSelectedFragment(fragment);
+                 setSelectedDatabase(null);
+                 return;
+             }
+        }
+        // Fallback for old "fragmentNode" type
+        if (node.data.fragment) {
+             setSelectedFragment(node.data.fragment as Fragment);
+             setSelectedDatabase(null);
+        }
+    } else if (node.type === 'databaseNode') {
+      setSelectedDatabase(node.data as Database); 
+      setSelectedFragment(null); 
+    }
+  }, [currentQuery]);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedFragment(null);
+    setSelectedDatabase(null);
+  }, []);
+
   const handleBackToLatest = () => {
     navigate('/');
-    setMetricsPanelOpen(true);
+    setSelectedFragment(null);
+    setSelectedDatabase(null);
   };
 
-  useEffect(() => {
-    const transformGroup = document.querySelector('.react-flow__nodes');
-    if (transformGroup) {
-      transformGroup.classList.add('dag-transform-group');
-    }
-  }, [nodes]);
-
-  const selectedFragment = useMemo(() => {
-    const target = nodes.find(node => node.id === selectedFragmentId);
-    return (target?.data as any)?.node ?? null;
-  }, [nodes, selectedFragmentId]);
-
-  // Show initial loading screen only on first load
   if (loading && !currentQuery) {
     return (
       <div
@@ -446,7 +713,6 @@ const TreePage: React.FC = () => {
     );
   }
 
-  // Show error only if there's no query data to display
   if (error && !currentQuery) {
     return (
       <div
@@ -536,12 +802,11 @@ const TreePage: React.FC = () => {
       {/* Always show panels if we have query data */}
       {currentQuery && (
         <>
-          <UnifiedMetricsPanel
-            query={currentQuery}
-            activeFragment={selectedFragment}
-            isOpen={isMetricsPanelOpen}
-            onClose={() => setMetricsPanelOpen(false)}
-            onOpen={() => setMetricsPanelOpen(true)}
+          {/* Pass selectedFragment and selectedDatabase to the panel */}
+          <UnifiedMetricsPanel 
+            query={currentQuery} 
+            selectedFragment={selectedFragment} 
+            selectedDatabase={selectedDatabase}
           />
           <QueryPlanPanel
             events={currentQuery.events || []}
@@ -558,27 +823,15 @@ const TreePage: React.FC = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onInit={onInit}
-        onNodeClick={(_, node) => {
-          const fragmentId = (node.data as any)?.node?.id;
-          if (fragmentId) {
-            setSelectedFragmentId(fragmentId);
-            setMetricsPanelOpen(true);
-          }
-        }}
-        onNodeDoubleClick={(_, node) => {
-          const fragmentId = (node.data as any)?.node?.id;
-          if (fragmentId) {
-            setSelectedFragmentId(fragmentId);
-            setMetricsPanelOpen(true);
-          }
-        }}
+        onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         fitView
         fitViewOptions={{
           padding: 0.2,
           maxZoom: 1.5,
           minZoom: 0.5,
         }}
-        proOptions={proOptions}
+        proOptions={proOptions} 
         nodeExtent={[[ -800, -200 ], [ 20000, 12000 ]]}
       >
         <Background />

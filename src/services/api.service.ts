@@ -1,4 +1,4 @@
-import { QueryTree } from '../types/api.types';
+import { QueryTree, AIAnalysisResponse, AIStatus } from '../types/api.types';
 import { Database } from '../types/database.types';
 
 const BASE_URL = 'http://localhost:8080/api';
@@ -50,11 +50,25 @@ export const apiService = {
   },
 
   getDatabases: async (): Promise<Database[]> => {
-    try {
-      const response = await fetch(`${BASE_URL}/databases`);
-      return handleResponse<Database[]>(response, 'Failed to fetch databases');
-    } catch (error) {
-      throw handleFetchError(error, 'Failed to fetch databases');
-    }
+    const response = await fetch(`${BASE_URL}/databases`);
+    if (!response.ok) throw new Error('Failed to fetch databases');
+    return response.json();
+  },
+
+  getAIStatus: async (): Promise<AIStatus> => {
+    const response = await fetch(`${BASE_URL}/ai/status`);
+    if (!response.ok) throw new Error('Failed to fetch AI status');
+    return response.json();
+  },
+
+  analyzeQuery: async (queryId: string): Promise<AIAnalysisResponse> => {
+    const response = await fetch(`${BASE_URL}/ai/analyze/${queryId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) throw new Error(`Failed to analyze query ${queryId}`);
+    return response.json();
   }
 };

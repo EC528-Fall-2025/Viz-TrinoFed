@@ -1,0 +1,16 @@
+version: '3.9'
+services:
+  postgresql:
+    image: postgres:15 
+    container_name: postgresql 
+    command: ["/bin/true"] 
+
+  trino:
+    depends_on:
+      - kafka
+    volumes:
+      # Mount the AWS catalog file instead of the local one
+      - ./trino/etc/catalog/postgres_aws.properties:/etc/trino/catalog/postgres.properties:ro
+    env_file:
+      # Load the production secrets file
+      - .env.aws

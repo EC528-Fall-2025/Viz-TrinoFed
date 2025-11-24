@@ -21,6 +21,7 @@ This project aims to enhance the observability of Trino as a federated query eng
 - Integration of Metrics: A display of execution metrics such as planning time, scheduling delays, execution time per connector, network latency, and join/merge performance.
 - Error Mapping: A list of surface errors and exceptions in the visualization, showing exactly where failures occurred within the query tree, displayed at a high-level, and optionally in low-level detail. 
 - Performance Analysis: Identification of bottlenecks across the federated data sources, allowing performance tuning by making visible the impact of connector behavior, delays, and scheduling overhead.
+- AI-Powered Query Optimization: Integrated Amazon Bedrock AI to analyze queries and provide optimization suggestions, bottleneck analysis, and optimized query rewrites to reduce latency.
 - Intuitive UI: Interactive visualization interface using React and Typescript. 
 - Trino Plugin Integration: Develop this as an open-source Trino plugin to make usage easy for widespread implementation on Trino. 
 
@@ -104,6 +105,7 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - Configure at least **two connectors** (PostgreSQL and MongoDB) as catalogs ([PostgreSQL Connector Docs](https://trino.io/docs/current/connector/postgresql.html)).  
 - Run federated queries that join across PostgreSQL and MongoDB to test visualization accuracy.  
 - Feed captured metrics and events from Kafka into the visualization UI.  
+- Test on a Kubernetes environment to simulate larger workflows with scaled-up coordinators and workers.
 
 ---
 
@@ -123,7 +125,6 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 ## Out of Scope
 - Modifying Trino’s internal query engine or scheduling mechanisms.  
 - Full-scale production integration with observability stacks (Prometheus, Grafana, ELK).  
-- Predictive query optimization or automatic performance tuning.  
 - Supporting all connectors (initial scope limited to PostgreSQL and MongoDB).  
 
 
@@ -194,6 +195,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **Enhanced UI Interactivity**: Implement advanced UI features using ReactFlow, such as the ability to expand and collapse nodes in the query tree and hover over a node to view detailed metadata and error logs.
 - **Historical Query Analysis**: Integrate a persistent storage solution (e.g., a simple database) to store query metrics, allowing users to view and analyze the history of recent query executions.
 - **Broader Connector Support**: Extend the visualization tool to reliably support additional Trino connectors beyond the initial PostgreSQL and MongoDB scope.
+- **AI Powered Analysis**: Include a refined query based on output metrics. AI will identify bottlenecks in the query lifecycle and suggest changes to increase performance. Powered by AWS Bedrock.
 
 ## 6.  Release Planning:
 
@@ -203,26 +205,33 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Configure and enable the Trino Kafka Event Listener to capture query events.  
 - Develop a basic backend service to consume events from Kafka.
 - Initialize a skeleton frontend application using React and TypeScript.
+
 ### Sprint 2: Backend Logic & MVP Visualization (10/2 - 10/15)
 - Implement backend logic to parse and correlate Kafka events using query IDs.
 - Develop the data model to reconstruct a hierarchical query tree from the events.
 - Create a basic, non-interactive web UI to render a static query tree for a completed query.
 - Connect the frontend to the backend to display the first visual results.
+
 ### Sprint 3: Integrating Core Metrics & Error Handling (10/16-10/29)
 - Enhance the backend to calculate timing for each query phase (planning, scheduling, execution, merging).  
 - Display these core performance metrics on the corresponding nodes in the UI.
 - Implement logic to visually flag failed nodes in the tree.
 - Show high-level error messages in the UI when a user interacts with a failed node.  
-### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
 - Implement advanced UI features like the ability to expand and collapse nodes in the query tree.
 - Add color-coded statuses for quick readability (e.g., green for success, red for error).
+
+### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
 - Refine the overall UI/UX based on feedback to ensure the visualization is intuitive.
+  - Specifically the query history page, and summary metrics.
 - Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
-### Sprint 5: Plugin Packaging & Documentation (11/13-11/26)
-- Structure the entire application as an installable, open-source Trino plugin.
-- Create clear documentation for installation, configuration, and usage.
+- Conduct unit testing to test specific backend endpoints and specific frontend functionality.
+
+### Sprint 5: Plugin Packaging & Documentation (11/13-11/24)
+- Refine download and install instructions to ensure the application is easy to use.
+- Integrate into a package manager to make installation easier. Possibly a docker image.
 - Perform final system testing and address any remaining bugs.
 - Prepare the project for its final presentation and public release.
+- Visit stretch goals.
 
 ** **
 
@@ -230,3 +239,4 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **Sprint 1 Demo:** [Demo Video](https://drive.google.com/file/d/12Kgs93nI-796UiD3oaEdlZPOYR7iLEN1/view?usp=sharing)
 - **Sprint 2 Demo:** [Demo Video](https://drive.google.com/file/d/1_olgs3wt_34JfBFfE4NNm40x0aeGwzOQ/view?usp=sharing)
 - **Sprint 3 Demo:** [Demo Video](https://drive.google.com/file/d/1gcGPBWDueJEfAermKn4a4y9KWGiF387A/view?usp=sharing)
+- **Sprint 4 Demo:** [Demo Video](https://drive.google.com/file/d/1hiXn4aFD6uq4pDphWAVwAQYTOVsG-tgV/view?usp=drive_link)

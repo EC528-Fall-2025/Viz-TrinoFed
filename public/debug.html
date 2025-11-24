@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connection Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #00ff00; }
+        .test { margin: 10px 0; padding: 10px; background: #2d2d2d; }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        button { padding: 10px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Backend Connection Diagnostics</h1>
+    <button onclick="testAll()">Run All Tests</button>
+    <button onclick="window.location.href='/'">Go to Main App</button>
+
+    <div id="results"></div>
+
+    <script>
+        async function testAll() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Running tests...</h2>';
+
+            const tests = [];
+
+            // Test 1: Fetch with full error details
+            tests.push(testFetch('http://localhost:8080/api/queries'));
+            tests.push(testFetch('http://127.0.0.1:8080/api/queries'));
+            tests.push(testFetch('http://[::1]:8080/api/queries'));
+
+            const testResults = await Promise.allSettled(tests);
+
+            results.innerHTML = testResults.map((result, i) => {
+                if (result.status === 'fulfilled') {
+                    return result.value;
+                } else {
+                    return `<div class="test error">Test ${i+1} crashed: ${result.reason}</div>`;
+                }
+            }).join('');
+        }
+
+        async function testFetch(url) {
+            const startTime = Date.now();
+            try {
+                console.log('Testing:', url);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const elapsed = Date.now() - startTime;
+
+                if (!response.ok) {
+                    return `<div class="test error">
+                        ❌ ${url}<br>
+                        Status: ${response.status} ${response.statusText}<br>
+                        Time: ${elapsed}ms
+                    </div>`;
+                }
+
+                const data = await response.json();
+                return `<div class="test success">
+                    ✅ ${url}<br>
+                    Status: ${response.status}<br>
+                    Queries: ${data.length}<br>
+                    Time: ${elapsed}ms<br>
+                    CORS: ${response.headers.get('access-control-allow-origin') || 'Not set'}
+                </div>`;
+
+            } catch (error) {
+                const elapsed = Date.now() - startTime;
+                return `<div class="test error">
+                    ❌ ${url}<br>
+                    Error: ${error.message}<br>
+                    Type: ${error.name}<br>
+                    Time: ${elapsed}ms
+                </div>`;
+            }
+        }
+
+        // Auto-run on load
+        window.onload = testAll;
+    </script>
+</body>
+</html>
