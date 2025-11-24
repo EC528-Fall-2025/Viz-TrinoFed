@@ -1,7 +1,9 @@
 import { QueryTree, AIAnalysisResponse, AIStatus } from '../types/api.types';
 import { Database } from '../types/database.types';
 
-const BASE_URL = 'http://localhost:8080/api';
+// Use relative path for Docker deployment (nginx will proxy to backend)
+// For development, set VITE_API_URL=http://localhost:8080/api in .env.local
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const handleResponse = async <T>(response: Response, errorMessage: string): Promise<T> => {
   if (!response.ok) {

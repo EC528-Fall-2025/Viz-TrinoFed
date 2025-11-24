@@ -1,14 +1,16 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 # spring:
 #   application:
 #     name: trino-kafka-parser
 spring:
+  application:
+    name: trino-kafka-parser
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: trino-parser-group
+      group-id: ${KAFKA_CONSUMER_GROUP:trino-parser-group}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -19,7 +21,7 @@ spring:
       ack-mode: manual
 trino:
   kafka:
-    topic: trino-query-events
+    topic: ${TRINO_KAFKA_TOPIC:trino-query-events}
 
 aws:
   bedrock:
@@ -28,3 +30,8 @@ aws:
     model-id: ${AWS_BEDROCK_MODEL_ID:us.anthropic.claude-sonnet-4-20250514-v1:0}
     access-key-id: ${AWS_ACCESS_KEY_ID:}
     secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+logging:
+  level:
+    com.trinofed.parser: INFO
+    org.springframework.kafka: WARN
