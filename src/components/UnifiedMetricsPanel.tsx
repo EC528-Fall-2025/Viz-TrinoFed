@@ -3,7 +3,8 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Database, DatabaseSchema, DatabaseTable } from '../types/database.types';
 import CopyPaste from './CopyPaste';
 import { apiService } from '../services/api.service';
-import { OperatorTree } from './OperatorTree';
+import DetailedOperatorPipeline from './DetailedOperatorPipeline';
+
 
 interface UnifiedMetricsPanelProps {
   query: QueryTree;
@@ -544,12 +545,19 @@ const UnifiedMetricsPanel = ({
         {/* Operators Section */}
         {fragment.operators && fragment.operators.length > 0 &&
           renderSection(`Operators (${fragment.operators.length})`, '⚙️',
-            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-              <OperatorTree operators={fragment.operators} />
+            <div style={{ 
+              maxHeight: 400, 
+              overflowY: 'auto',
+              backgroundColor: '#fafafa',
+              borderRadius: '8px',
+              padding: '10px',
+              border: '1px solid #eee'
+            }}>
+              <DetailedOperatorPipeline operators={fragment.operators} />
             </div>
           )
         }
-
+        
         {/* Output Layout */}
         {fragment.outputLayout &&
           renderSection('Output Layout', '📋',
