@@ -585,8 +585,12 @@ const TreePage: React.FC = () => {
           jsonPlan: jsonPlan,
           fragments: queryToDisplay.fragments || [],
           state: queryToDisplay.state,
-          databases: databases // <--- PASS DATABASES HERE
-        });
+          databases: databases, // <--- PASS DATABASES HERE
+          queryId: queryToDisplay.queryId,
+          query: queryToDisplay.query,
+          totalRows: queryToDisplay.events?.find(e => e.totalRows)?.totalRows,
+          totalExecutionTime: queryToDisplay.totalExecutionTime
+        } as any);
         
         if (result.nodes.length > 0) {
           rfNodes = result.nodes;
