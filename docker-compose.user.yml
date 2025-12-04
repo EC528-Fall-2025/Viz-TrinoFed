@@ -1,0 +1,69 @@
+# ==============================================================================
+# Viz-TrinoFed - User Deployment Compose File
+# ==============================================================================
+# This is the only file you need to run Viz-TrinoFed!
+#
+# Quick Start (Kafka on host machine):
+#   KAFKA_HOST=host.docker.internal:9092 docker-compose -f docker-compose.user.yml up -d
+#
+# If Kafka is in Docker (on another network):
+#   KAFKA_NETWORK=your_kafka_network KAFKA_HOST=kafka:29092 \
+#     docker-compose -f docker-compose.user.yml up -d
+#
+# Custom Ports (if defaults are in use):
+#   KAFKA_HOST=host.docker.internal:9092 FRONTEND_PORT=3001 BACKEND_PORT=8081 \
+#     docker-compose -f docker-compose.user.yml up -d
+#
+# Open http://localhost:3000 (or your custom FRONTEND_PORT)
+# ==============================================================================
+
+services:
+  backend:
+    image: ${DOCKER_REGISTRY:-viztrinofed}/viz-trinofed-backend:${IMAGE_TAG:-latest}
+    container_name: viz-trinofed-backend
+    environment:
+      # Kafka configuration (REQUIRED - set KAFKA_HOST to your Kafka broker)
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_HOST:-host.docker.internal:9092}
+      TRINO_KAFKA_TOPIC: ${KAFKA_TOPIC:-trino-query-events}
+      
+      # AWS Bedrock AI (optional - disabled by default)
+      AWS_BEDROCK_ENABLED: ${AWS_BEDROCK_ENABLED:-false}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_BEDROCK_MODEL_ID: ${AWS_BEDROCK_MODEL_ID:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      
+      # Server config
+      SERVER_PORT: 8080
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    networks:
+      - viz-network
+      - kafka-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  frontend:
+    image: ${DOCKER_REGISTRY:-viztrinofed}/viz-trinofed-frontend:${IMAGE_TAG:-latest}
+    container_name: viz-trinofed-frontend
+    environment:
+      # Backend connection (internal Docker network)
+      BACKEND_HOST: backend:8080
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    networks:
+      - viz-network
+    restart: unless-stopped
+
+networks:
+  viz-network:
+    driver: bridge
+  kafka-network:
+    # Connect to the external network where Kafka is running
+    # Set KAFKA_NETWORK env var to your Kafka network name
+    # Find it with: docker network ls | grep -E "(trino|kafka)"
+    name: ${KAFKA_NETWORK:-viz-trinofed_trino-network}
+    external: true
