@@ -25,14 +25,20 @@ public class QueryEventService {
     private final DatabaseService databaseService;
     private final QueryPlanParser queryPlanParser;
     private final TextPlanParser textPlanParser;
+    private com.trinofed.parser.controller.QueryController queryController;
 
     @Autowired
-    public QueryEventService(SimpMessagingTemplate messagingTemplate, DatabaseService databaseService, 
+    public QueryEventService(SimpMessagingTemplate messagingTemplate, DatabaseService databaseService,
                            QueryPlanParser queryPlanParser, TextPlanParser textPlanParser) {
         this.messagingTemplate = messagingTemplate;
         this.databaseService = databaseService;
         this.queryPlanParser = queryPlanParser;
         this.textPlanParser = textPlanParser;
+    }
+
+    @Autowired
+    public void setQueryController(@org.springframework.context.annotation.Lazy com.trinofed.parser.controller.QueryController queryController) {
+        this.queryController = queryController;
     }
 
     
@@ -72,8 +78,15 @@ public class QueryEventService {
         // Send update via WebSocket
         messagingTemplate.convertAndSend("/topic/query-updates", tree);
 
+        // Auto-cache results when query completes successfully
+        if ("FINISHED".equals(event.getState()) && event.getQuery() != null && queryController != null) {
+            log.info("Query FINISHED - triggering auto-cache for queryId: {}", queryId);
+            // Run caching in a separate thread to avoid blocking event processing
+            new Thread(() -> queryController.cacheResultsForQuery(queryId, event.getQuery())).start();
+        }
+
         log.info("Processed event for query: {}, catalog: {}, schema: {}, table: {}, total events: {}",
-                queryId, event.getCatalog(), event.getSchema(), event.getTableName(), 
+                queryId, event.getCatalog(), event.getSchema(), event.getTableName(),
                 queryEvents.get(queryId).size());
     }
 
