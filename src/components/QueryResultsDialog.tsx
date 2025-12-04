@@ -23,6 +23,7 @@ import { TableChart, Close } from "@mui/icons-material";
 interface QueryResultsDialogProps {
   open: boolean;
   query: string | undefined;
+  queryId?: string;
   onClose: () => void;
 }
 
@@ -31,33 +32,47 @@ interface QueryResult {
   data: any[][];
 }
 
-export function QueryResultsDialog({ open, query, onClose }: QueryResultsDialogProps) {
+// Cache to store query results by queryId
+const resultsCache = new Map<string, QueryResult>();
+
+export function QueryResultsDialog({ open, query, queryId, onClose }: QueryResultsDialogProps) {
   const [queryResult, setQueryResult] = React.useState<QueryResult | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (open && query) {
+      // Check if we have cached results for this queryId
+      if (queryId && resultsCache.has(queryId)) {
+        const cachedResult = resultsCache.get(queryId);
+        if (cachedResult) {
+          setQueryResult(cachedResult);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+      }
+      // If no cached results, execute the query
       executeQuery();
     }
-  }, [open, query]);
+  }, [open, query, queryId]);
 
   const executeQuery = async () => {
     setLoading(true);
     setError(null);
     setQueryResult(null);
 
-    if (!query) {
-      setError("No query available to execute");
+    if (!queryId) {
+      setError("No query ID available. Cannot fetch results.");
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/queries/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+      // Fetch cached results by queryId from backend
+      const response = await fetch(`http://localhost:8080/api/queries/${queryId}/results`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
       });
 
       const result = await response.json();
@@ -66,12 +81,19 @@ export function QueryResultsDialog({ open, query, onClose }: QueryResultsDialogP
         throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
 
-      setQueryResult({
+      const resultData: QueryResult = {
         columns: result.columns || [],
         data: result.data || [],
-      });
+      };
+
+      setQueryResult(resultData);
+
+      // Cache the results
+      if (queryId) {
+        resultsCache.set(queryId, resultData);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch query results');
+      setError(err.message || 'Failed to fetch query results. The query may not have been executed yet or results may have expired from Trino cache.');
     } finally {
       setLoading(false);
     }

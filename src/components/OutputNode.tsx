@@ -21,8 +21,8 @@ export function OutputNode({ data }: OutputNodeProps) {
   const { openResults } = useQueryResults();
 
   const handleViewResults = () => {
-    if (data.query) {
-      openResults(data.query);
+    if (data.query && data.queryId) {
+      openResults(data.query, data.queryId);
     }
   };
 
