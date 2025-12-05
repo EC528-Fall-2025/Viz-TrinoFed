@@ -2,7 +2,7 @@ import { QueryTree, AIAnalysisResponse, AIStatus } from '../types/api.types';
 import { Database } from '../types/database.types';
 
 // Use relative path for Docker deployment (nginx will proxy to backend)
-// For development, set VITE_API_URL=http://localhost:8080/api in .env.local
+// For development, set VITE_API_URL in .env.local to point to your backend
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const handleResponse = async <T>(response: Response, errorMessage: string): Promise<T> => {
@@ -15,7 +15,7 @@ const handleResponse = async <T>(response: Response, errorMessage: string): Prom
 
 const handleFetchError = (error: unknown, defaultMessage: string): Error => {
   if (error instanceof TypeError && error.message.includes('fetch')) {
-    return new Error(`Network error: Cannot connect to backend at ${BASE_URL}. Make sure the backend is running on http://localhost:8080`);
+    return new Error(`Network error: Cannot connect to backend at ${BASE_URL}. Please ensure the backend service is running.`);
   }
   if (error instanceof Error) {
     return error;

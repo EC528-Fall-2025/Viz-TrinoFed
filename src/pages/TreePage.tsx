@@ -558,7 +558,7 @@ const TreePage: React.FC = () => {
       }
 
       if (currentQuery?.queryId === queryToDisplay.queryId && currentQuery?.state === queryToDisplay.state) {
-        setCurrentQuery(queryToDisplay); 
+        // Don't update state if nothing changed - this prevents infinite re-render loops
         return; 
       }
       
@@ -630,7 +630,7 @@ const TreePage: React.FC = () => {
       setLoading(false);
     } catch (err) {
       if (!queryId) {
-        setError('Failed to connect to backend. Make sure backend is running on http://localhost:8080');
+        setError('Failed to connect to backend. Please ensure the backend service is running.');
       }
       setLoading(false);
     }

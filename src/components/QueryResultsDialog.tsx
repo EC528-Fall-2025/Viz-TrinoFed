@@ -20,6 +20,9 @@ import {
 } from "@mui/material";
 import { TableChart, Close } from "@mui/icons-material";
 
+// Use relative path for Docker deployment (nginx will proxy to backend)
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 interface QueryResultsDialogProps {
   open: boolean;
   query: string | undefined;
@@ -69,8 +72,7 @@ export function QueryResultsDialog({ open, query, queryId, onClose }: QueryResul
     }
 
     try {
-      // Fetch cached results by queryId from backend
-      const response = await fetch(`http://localhost:8080/api/queries/${queryId}/results`, {
+      const response = await fetch(`${BASE_URL}/queries/${queryId}/results`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
       });
