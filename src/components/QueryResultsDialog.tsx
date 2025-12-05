@@ -57,10 +57,9 @@ export function QueryResultsDialog({ open, query, onClose }: QueryResultsDialogP
     }
 
     try {
-      const response = await fetch(`${BASE_URL}/queries/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+      const response = await fetch(`${BASE_URL}/queries/${queryId}/results`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
       });
 
       const result = await response.json();
