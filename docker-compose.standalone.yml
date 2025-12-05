@@ -1,3 +1,4 @@
+# this is for building the standalone docker images and running them locally
 version: '3.9'
 
 services:
