@@ -1,7 +1,6 @@
 # Backend Unit Testing Report
 **Project:** Viz-TrinoFed - Trino Query Tree Visualization
 **Date:** November 9, 2025
-**Test Execution:** SUCCESSFUL ✅
 **Total Tests:** 42
 **Passed:** 42 | **Failed:** 0 | **Errors:** 0
 
@@ -40,24 +39,24 @@ Execution Time: ~6 seconds
 
 ## Test Suite Breakdown
 
-### 1. QueryPlanParserTest (13 tests) ✅
+### 1. QueryPlanParserTest (13 tests) 
 
 **Purpose:** Test JSON plan parsing and query tree construction
 
 **Test Cases:**
-1. ✅ `testParseSimpleSelectQuery` - Parse basic SELECT with TableScan
-2. ✅ `testParseJoinQuery` - Parse complex JOIN with multiple children
-3. ✅ `testParseNullInput` - Handle null input gracefully
-4. ✅ `testParseEmptyString` - Handle empty string input
-5. ✅ `testParseWhitespaceInput` - Handle whitespace-only input
-6. ✅ `testParseMalformedJson` - Handle invalid JSON gracefully
-7. ✅ `testExtractCostEstimates` - Extract cost metrics correctly
-8. ✅ `testExtractOperatorListSimple` - Extract operators from simple query
-9. ✅ `testExtractOperatorListComplex` - Extract operators from complex query
-10. ✅ `testExtractOperatorListNullInput` - Handle null in operator extraction
-11. ✅ `testExtractTableInformation` - Extract table metadata from TableScan
-12. ✅ `testMissingFragmentZero` - Handle missing root fragment
-13. ✅ Additional edge case tests
+1.  `testParseSimpleSelectQuery` - Parse basic SELECT with TableScan
+2.  `testParseJoinQuery` - Parse complex JOIN with multiple children
+3.  `testParseNullInput` - Handle null input gracefully
+4.  `testParseEmptyString` - Handle empty string input
+5.  `testParseWhitespaceInput` - Handle whitespace-only input
+6.  `testParseMalformedJson` - Handle invalid JSON gracefully
+7.  `testExtractCostEstimates` - Extract cost metrics correctly
+8.  `testExtractOperatorListSimple` - Extract operators from simple query
+9.  `testExtractOperatorListComplex` - Extract operators from complex query
+10.  `testExtractOperatorListNullInput` - Handle null in operator extraction
+11.  `testExtractTableInformation` - Extract table metadata from TableScan
+12.  `testMissingFragmentZero` - Handle missing root fragment
+13.  Additional edge case tests
 
 **What Was Tested:**
 - JSON parsing of Trino query plans
@@ -95,24 +94,24 @@ void testParseSimpleSelectQuery() {
 
 ---
 
-### 2. QueryEventServiceTest (13 tests) ✅
+### 2. QueryEventServiceTest (13 tests) 
 
 **Purpose:** Test event processing, query tree building, and data retrieval
 
 **Test Cases:**
-1. ✅ `testStoreAndRetrieveQueryEvent` - Store and retrieve query by ID
-2. ✅ `testGetNonExistentQuery` - Return null for non-existent queries
-3. ✅ `testMultipleEventsForSameQuery` - Track multiple events for one query
-4. ✅ `testGetAllQueryIds` - Retrieve all query IDs
-5. ✅ `testGetAllQueryTrees` - Retrieve all query trees
-6. ✅ `testGetQueriesByCatalog` - Filter queries by catalog (postgres, mongodb)
-7. ✅ `testGetQueriesBySchema` - Filter queries by schema
-8. ✅ `testGetQueriesByTable` - Filter queries by table
-9. ✅ `testGetDatabaseSummary` - Generate database summary statistics
-10. ✅ `testDatabaseServiceIntegration` - Verify database service integration
-11. ✅ `testJsonPlanParsing` - Parse JSON plan when available
-12. ✅ `testEventWithoutJsonPlan` - Handle events without JSON plan
-13. ✅ `testGetQueriesByNonExistentCatalog` - Handle non-existent catalog
+1.  `testStoreAndRetrieveQueryEvent` - Store and retrieve query by ID
+2.  `testGetNonExistentQuery` - Return null for non-existent queries
+3.  `testMultipleEventsForSameQuery` - Track multiple events for one query
+4.  `testGetAllQueryIds` - Retrieve all query IDs
+5.  `testGetAllQueryTrees` - Retrieve all query trees
+6.  `testGetQueriesByCatalog` - Filter queries by catalog (postgres, mongodb)
+7.  `testGetQueriesBySchema` - Filter queries by schema
+8.  `testGetQueriesByTable` - Filter queries by table
+9.  `testGetDatabaseSummary` - Generate database summary statistics
+10.  `testDatabaseServiceIntegration` - Verify database service integration
+11.  `testJsonPlanParsing` - Parse JSON plan when available
+12.  `testEventWithoutJsonPlan` - Handle events without JSON plan
+13.  `testGetQueriesByNonExistentCatalog` - Handle non-existent catalog
 
 **What Was Tested:**
 - Event storage in concurrent hashmaps
@@ -140,19 +139,19 @@ void setUp() {
 
 ---
 
-### 3. QueryControllerTest (8 tests) ✅
+### 3. QueryControllerTest (8 tests) 
 
 **Purpose:** Test REST API endpoints for query retrieval
 
 **Test Cases:**
-1. ✅ `testGetAllQueries` - GET /api/queries returns all queries
-2. ✅ `testGetAllQueriesEmpty` - Returns empty list when no queries
-3. ✅ `testGetQueryById` - GET /api/queries/{id} returns specific query
-4. ✅ `testGetQueryByIdNotFound` - Returns 404 for non-existent query
-5. ✅ `testGetAllQueryIds` - GET /api/queries/ids returns query IDs
-6. ✅ `testGetAllQueryIdsEmpty` - Returns empty list when no IDs
-7. ✅ `testGetQueryWithSpecialCharacters` - Handle special characters in IDs
-8. ✅ `testCorsConfiguration` - CORS headers configured correctly
+1.  `testGetAllQueries` - GET /api/queries returns all queries
+2.  `testGetAllQueriesEmpty` - Returns empty list when no queries
+3.  `testGetQueryById` - GET /api/queries/{id} returns specific query
+4.  `testGetQueryByIdNotFound` - Returns 404 for non-existent query
+5.  `testGetAllQueryIds` - GET /api/queries/ids returns query IDs
+6.  `testGetAllQueryIdsEmpty` - Returns empty list when no IDs
+7.  `testGetQueryWithSpecialCharacters` - Handle special characters in IDs
+8.  `testCorsConfiguration` - CORS headers configured correctly
 
 **What Was Tested:**
 - REST endpoint functionality
@@ -179,19 +178,19 @@ void testGetQueryById() throws Exception {
 
 ---
 
-### 4. QueryTreeNodeTest (8 tests) ✅
+### 4. QueryTreeNodeTest (8 tests) 
 
 **Purpose:** Test data model serialization and builder pattern
 
 **Test Cases:**
-1. ✅ `testBuilderPattern` - Builder creates objects correctly
-2. ✅ `testSerialization` - Object to JSON conversion
-3. ✅ `testDeserialization` - JSON to object conversion
-4. ✅ `testChildrenNodes` - Parent-child relationships
-5. ✅ `testDefaultChildren` - Empty children list by default
-6. ✅ `testMetadata` - Metadata map handling
-7. ✅ `testEqualsAndHashCode` - Equality and hashing
-8. ✅ `testNullValues` - Null value handling
+1.  `testBuilderPattern` - Builder creates objects correctly
+2.  `testSerialization` - Object to JSON conversion
+3.  `testDeserialization` - JSON to object conversion
+4.  `testChildrenNodes` - Parent-child relationships
+5.  `testDefaultChildren` - Empty children list by default
+6.  `testMetadata` - Metadata map handling
+7.  `testEqualsAndHashCode` - Equality and hashing
+8.  `testNullValues` - Null value handling
 
 **What Was Tested:**
 - Lombok @Builder functionality
@@ -291,18 +290,18 @@ backend/pom.xml
 ## Coverage Analysis
 
 ### High Coverage Areas (>50%)
-- ✅ **Config package** - 100% coverage (KafkaConfig, WebSocketConfig, CorsConfig)
-- ✅ **Parser logic** - 65% coverage of core parsing methods
+-  **Config package** - 100% coverage (KafkaConfig, WebSocketConfig, CorsConfig)
+-  **Parser logic** - 65% coverage of core parsing methods
 
 ### Medium Coverage Areas (20-50%)
-- 🟡 **Service layer** - 28% coverage
+-  **Service layer** - 28% coverage
   - QueryPlanParser: 35% (parseJsonPlan, extractOperatorList tested)
   - QueryEventService: 25% (processEvent, getQueryTree tested)
 
 ### Low Coverage Areas (<20%)
-- 🔴 **Controllers** - 13% coverage (only QueryController tested)
-- 🔴 **Models** - 0% direct coverage (covered indirectly through service tests)
-- 🔴 **Consumer** - 14% coverage (Kafka consumer not fully tested)
+-  **Controllers** - 13% coverage (only QueryController tested)
+-  **Models** - 0% direct coverage (covered indirectly through service tests)
+-  **Consumer** - 14% coverage (Kafka consumer not fully tested)
 
 ### Coverage Improvement Opportunities
 1. Add integration tests for Kafka consumer with EmbeddedKafka
@@ -314,14 +313,14 @@ backend/pom.xml
 
 ## Key Findings
 
-### ✅ Strengths
+###  Strengths
 1. **100% test pass rate** - All implemented tests are stable
 2. **Core functionality covered** - Query parsing and event processing tested
 3. **REST API validation** - Controllers tested with MockMvc
 4. **Error handling** - Null inputs and edge cases tested
 5. **Mock usage** - Proper isolation with Mockito
 
-### 🔄 Areas for Improvement
+###  Areas for Improvement
 1. **Kafka Integration** - Need EmbeddedKafka tests for consumer
 2. **Database Integration** - DatabaseService needs more coverage
 3. **AI Service** - BedrockAIService not yet tested
@@ -417,10 +416,10 @@ Model           ░░░░░░░░░░░░░░░░░░░░   0
 
 The backend unit testing implementation successfully validates core functionality of the Viz-TrinoFed system:
 
-✅ **Query plan parsing works correctly** - Handles Trino JSON plans with multiple operators
-✅ **Event processing is reliable** - Stores and retrieves query events accurately
-✅ **REST APIs are functional** - Returns correct HTTP responses with proper data
-✅ **Data models are sound** - Serialization/deserialization works as expected
+ **Query plan parsing works correctly** - Handles Trino JSON plans with multiple operators
+ **Event processing is reliable** - Stores and retrieves query events accurately
+ **REST APIs are functional** - Returns correct HTTP responses with proper data
+ **Data models are sound** - Serialization/deserialization works as expected
 
 **Next Steps:**
 1. Implement Kafka consumer integration tests
