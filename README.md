@@ -11,15 +11,21 @@
 | Jacky Chen | jchen07@bu.edu |
 
 ## Table of Contents
-1. [Vision and Goals Of The Project](#1---vision-and-goals-of-the-project)
-2. [Users / Personas of the Project](#2-users--personas-of-the-project)
-3. [Scope and Features Of The Project](#3---scope-and-features-of-the-project)
-4. [Solution Concept](#4-solution-concept)
-5. [Acceptance Criteria](#5-acceptance-criteria)
-6. [Sprints](#6--release-planning)
-7. [Sprint Demos](#7-sprint-demos)
+1. [Installation Instructions](#1-installation-instructions)
+2. [Vision and Goals Of The Project](#2-vision-and-goals-of-the-project)
+3. [Users / Personas of the Project](#3-users--personas-of-the-project)
+4. [Scope and Features Of The Project](#4---scope-and-features-of-the-project)
+5. [Solution Concept](#5-solution-concept)
+6. [Acceptance Criteria](#6-acceptance-criteria)
+7. [Release Planning](#7--release-planning)
+8. [Sprint Demos](#8-sprint-demos)
 
-## 1.   Vision and Goals Of The Project:
+## 1. Installation Instructions
+- [Docker Install](/docs/DOCKER_INSTALL.md) (Recommended)
+- [Install From Source](/docs/QUICK_START.md)
+
+
+## 2. Vision and Goals Of The Project:
 
 ### Goal
 This project aims to enhance the observability of Trino as a federated query engine by providing clear visibility into the full lifecycle of a query’s execution. While Trino allows users to query across differing data sources as if they were a single system, the lack of transparency into how queries are parsed, scheduled, and executed poses challenges for performance monitoring and troubleshooting. The current UI is complex and technical, representing a significant barrier to user understanding. By developing a visualization of query trees with extensive time-spent metrics, this project will enable users to better understand query behavior, identify performance bottlenecks, and correct errors, ultimately improving user and developer productivity with Trino. 
@@ -28,14 +34,15 @@ This project aims to enhance the observability of Trino as a federated query eng
 - Clear Phases: Separate visualizations for each phase of querying (planning, scheduling, execution, merging).
 - Query tree visualization: A visual representation of Trino query plans and their decomposition into sub-queries and tasks.
 - Integration of Metrics: A display of execution metrics such as planning time, scheduling delays, execution time per connector, network latency, and join/merge performance.
+- Comprehensive Testing Suite: A suite of frontend unit tests, backend unit tests, and integration tests, to ensure proper functionality of the application.
 - Error Mapping: A list of surface errors and exceptions in the visualization, showing exactly where failures occurred within the query tree, displayed at a high-level, and optionally in low-level detail. 
 - Performance Analysis: Identification of bottlenecks across the federated data sources, allowing performance tuning by making visible the impact of connector behavior, delays, and scheduling overhead.
 - AI-Powered Query Optimization: Integrated Amazon Bedrock AI to analyze queries and provide optimization suggestions, bottleneck analysis, and optimized query rewrites to reduce latency.
 - Intuitive UI: Interactive visualization interface using React and Typescript. 
-- Trino Plugin Integration: Develop this as an open-source Trino plugin to make usage easy for widespread implementation on Trino. 
+- Docker Images: Easy to download and use docker images, with clear documentation listed in the `docs` directory.
 
 
-## 2. Users / Personas of the Project
+## 3. Users / Personas of the Project
 
 This project is designed for people who work with distributed data systems and need deep visibility into how queries traverse multiple data sources. By visualizing Trino query trees and exposing timing and error data for each stage (planning, scheduling, execution, network latency, connector-level work), this tool helps users diagnose issues, optimize performance, and build more reliable systems.
 
@@ -67,7 +74,7 @@ This project is designed for people who work with distributed data systems and n
 **In short:**  
 Anyone who needs to understand, debug, and optimize queries that span multiple data sources in Trino will benefit from this tool’s ability to make the entire query lifetime visible and comprehensible.
 
-## 3.   Scope and Features Of The Project:
+## 4.   Scope and Features Of The Project:
 ### 1. User-Friendly Visualization of Trino Query Trees
 - Develop an interactive web UI that allows users to explore how queries are executed in Trino.  
 - Replace Trino’s verbose `EXPLAIN ANALYZE` output with a simplified, user-friendly tree view.  
@@ -82,8 +89,7 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 
 ---
 
-### 3. Performance Metrics Collection and Visualization
-- Collect query metrics using Trino’s **observability features** (OpenTelemetry, OpenMetrics).  
+### 3. Performance Metrics Collection and Visualization  
 - Leverage the **Kafka Event Listener** ([Trino Kafka Listener Docs](https://trino.io/docs/current/admin/event-listeners-kafka.html)) to capture query events.  
 - Correlate events using **query IDs** to build accurate execution trees.  
 - Display execution times for each phase (planning, scheduling, execution, network, merging).  
@@ -137,18 +143,13 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 
 ** **
 
-## 4. Solution Concept
+## 5. Solution Concept
 
 ## Current Architecture
 <img width="781" height="772" alt="Trino Viz Architecture Diagram" src="https://github.com/user-attachments/assets/e147687f-daa8-43e4-b0cf-3cef3743c4bb" />
 
-## Introduction
-To complement the processing of queries on Trino, a distributed SQL query engine written in Java, our project aims to make the user end even more friendly and reveal more information than already shown about the lifecycle of each query. We want to reveal the complete life cycle of a query across all federated data sources. Taking the already shown runtime metrics and query plan structures from Trino, we will enrich them with more information like error data or connector-level performance, then display them in an interactive display tree, whether in a plugin, separate hosted website, or in any way most visually pleasing and precise. Thus, our project can give developers and engineers an intuitive view at query execution, failures and bookmarks. 
-
 ## Global Architectural Structure Of the Project:
 ### 1. Data Collection Layer
-- Retrieve query plans and details in JSON format. This is done with Trino’s EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON) SQL command or with coordinator endpoints.
-- Capture runtime metrics through Trino’s API and own built in metrics, EXPLAIN ANALYZE output, or directly from any workers on the system. Some metrics we will capture include execution time, errors, execution time and I/O information.  
 - Use a broker such as Kafka to capture execution events and push them downstream to our visualization services and display them.
 
 ### 2. Processing and Aggregation Layer
@@ -168,8 +169,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **User Interaction**: Allow users to scroll through the tree, walk through execution flow, collapse or expand subtrees and nodes to focus on bottlenecks and walk through individual metrics. 
 
 ### 4. Deployment Model
-- **Backend**:  A lightweight service, likely written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them to the frontend
-- **Scalability**: Deploy on Kubernetes with Kafka for event streaming. 
+- **Backend**:  A lightweight service, written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them to the frontend
 - Modular components for others to integrate with existing Trino monitoring tools.
 
  
@@ -188,15 +188,15 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **JSON Queries and API Integration**: Trino has existing JSON outputs (EXPLAIN, EXPLAIN ANALYZE, REST endpoints), so we will use these existing outputs to make this product compatible with all Trino core engines, lightweight, and future proof against future Trino updates.
 - **Reactflow**: The best choice for readable frontend of the tree rather than a static log output. We will have expand/collapse nodes, color-coded statuses, and hover interactions to make the simple metrics of the default Trino more readable.
 - **D3.js**: D3.js is a JavaScript library that creates abstractions to allow for easy in-browser data visualizations with user-configured update intervals.
-- **AWS Bedrock**: Users can optionally use IAM credentials via AWS CLI in order to connect our visualization and observability suite to their choice of state-of-the-art LLM for greater insight into results.
+- **AWS Bedrock**: Users can optionally use AWS credentials in order to connect our visualization and observability suite to their choice of state-of-the-art LLM for greater insight into results.
 
-## 5. Acceptance criteria
+## 6. Acceptance criteria
 
 ### Minimum acceptance criteria
 - **Core Visualization Functionality**: Develop an interactive web UI that successfully renders the query execution tree for a federated Trino query joining data from at least two different sources (PostgreSQL and MongoDB).   
 - **Query Lifecycle Display**: The visualization must clearly distinguish between the primary phases of a query's lifecycle: Planning, Scheduling, Execution (per data source), and Merging.   
 - **Basic Metrics & Error Reporting**: The UI must display the total time spent for a query and visually indicate where in the tree an error occurred if a query fails. The system must successfully capture this data using Trino's Kafka Event Listener.   
-- **Plugin Packaging**: The final tool must be packaged as a basic, open-source Trino plugin to facilitate straightforward installation and use by the Trino community.
+- **Plugin Packaging**: The final tool must be packaged as a basic, open-source Docker Image to facilitate straightforward installation and use by the Trino community.
 
 ### Stretch goals:
 - **Advanced Metric Visualization**: Display detailed, per-phase performance metrics, including planning time, network latency, scheduling delays, and join/merge time. Implement color-coded indicators (🟢, 🟡, 🔴) to denote success, high latency, or failure.   
@@ -205,7 +205,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **Broader Connector Support**: Extend the visualization tool to reliably support additional Trino connectors beyond the initial PostgreSQL and MongoDB scope.
 - **AI Powered Analysis**: Include a refined query based on output metrics. AI will identify bottlenecks in the query lifecycle and suggest changes to increase performance. Powered by AWS Bedrock.
 
-## 6.  Release Planning:
+## 7.  Release Planning:
 
 ### Sprint 1: Project Setup & Data Ingestion (9/24 - 10/1)
 - Finalize system architecture and create a detailed development plan.
@@ -245,7 +245,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 
 ** **
 
-## 7. Sprint Demos:
+## 8. Sprint Demos:
 - **Sprint 1 Demo:** [Demo Video](https://drive.google.com/file/d/12Kgs93nI-796UiD3oaEdlZPOYR7iLEN1/view?usp=sharing)
 - **Sprint 2 Demo:** [Demo Video](https://drive.google.com/file/d/1_olgs3wt_34JfBFfE4NNm40x0aeGwzOQ/view?usp=sharing)
 - **Sprint 3 Demo:** [Demo Video](https://drive.google.com/file/d/1gcGPBWDueJEfAermKn4a4y9KWGiF387A/view?usp=sharing)
