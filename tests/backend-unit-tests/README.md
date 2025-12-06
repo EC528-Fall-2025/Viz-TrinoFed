@@ -2,7 +2,19 @@
 
 This directory contains all backend unit testing files, reports, and documentation for the Viz-TrinoFed project.
 
-## 📁 Directory Structure
+## Table of Contents
+
+1. [Directory Structure](#directory-structure)
+2. [Quick Start](#quick-start)
+3. [Test Results Summary](#test-results-summary)
+4. [Files Included](#files-included)
+5. [What Was Tested](#what-was-tested)
+6. [Conclusion](#conclusioin)
+7. [Coverage Breakdown](#coverage-breakdown)
+8. [Troubleshooting](#troubleshooting)
+9. [Additional Resources](#additional-resources)
+
+## Directory Structure
 
 ```
 backend unit testing/
@@ -20,12 +32,12 @@ backend unit testing/
     └── QueryTreeNodeTest.java
 ```
 
-## 🎯 Quick Start
+## Quick Start
 
 ### Run All Tests
 ```bash
-cd /Users/lizhengyuan/Viz-TrinoFed/backend
-export JAVA_HOME=/Users/lizhengyuan/Library/Java/JavaVirtualMachines/openjdk-22.0.2/Contents/Home
+cd Viz-TrinoFed/backend
+export JAVA_HOME=/Users/your-username/Library/Java/JavaVirtualMachines/openjdk-22.0.2/Contents/Home
 mvn clean test
 ```
 
@@ -35,19 +47,19 @@ mvn jacoco:report
 open target/site/jacoco/index.html
 ```
 
-## 📊 Test Results Summary
+## Test Results Summary
 
 - **Total Tests:** 42
-- **Passed:** 42 ✅
+- **Passed:** 42 
 - **Failed:** 0
 - **Code Coverage:** 26%
 - **Execution Time:** ~6 seconds
 
-## 📝 Files Included
+## Files Included
 
 ### 1. Test Source Files (4 files)
 
-All test files have been copied to `/Users/lizhengyuan/Viz-TrinoFed/backend/src/test/java/`:
+All test files have been copied to `Viz-TrinoFed/backend/src/test/java/`:
 
 #### QueryPlanParserTest.java (13 tests)
 - Location: `backend/src/test/java/com/trinofed/parser/service/QueryPlanParserTest.java`
@@ -90,7 +102,7 @@ JaCoCo plugin configuration to add to `backend/pom.xml`:
 </plugin>
 ```
 
-**Status:** ✅ Already applied to backend/pom.xml
+**Status:** Already applied to backend/pom.xml
 
 #### run-tests-and-generate-report.sh
 Automated script to run tests and generate coverage report.
@@ -106,35 +118,32 @@ Comprehensive test report including:
 - How to run tests
 - Presentation metrics
 
-## 🛠️ What Was Tested
+## What Was Tested
 
 ### Services (28% coverage)
-- ✅ QueryPlanParser - JSON parsing, operator extraction
-- ✅ QueryEventService - Event processing, query tree building
-- 🔄 BedrockAIService - Not yet tested
-- 🔄 DatabaseService - Partially tested
+-  QueryPlanParser - JSON parsing, operator extraction
+-  QueryEventService - Event processing, query tree building
 
 ### Controllers (13% coverage)
-- ✅ QueryController - All GET endpoints
-- 🔄 AIAnalysisController - Not yet tested
-- 🔄 DatabaseController - Not yet tested
+-  QueryController - All GET endpoints
+-  AIAnalysisController - Not yet tested
+-  DatabaseController - Not yet tested
 
 ### Models (0% direct coverage)
-- ✅ QueryTreeNode - Tested via builder and serialization
-- 🔄 Other models - Covered indirectly
+-  QueryTreeNode - Tested via builder and serialization
+-  Other models - Covered indirectly
 
 ### Configuration (100% coverage)
-- ✅ KafkaConsumerConfig
-- ✅ WebSocketConfig
-- ✅ CorsConfig
+-  KafkaConsumerConfig
+-  WebSocketConfig
+-  CorsConfig
 
-## 🎓 For Presentation
+## Conclusioin
 
-### Key Metrics to Show
+### Where to Find Metrics
 1. **Test Execution:** Show `mvn test` running with all 42 tests passing
 2. **Coverage Report:** Open `target/site/jacoco/index.html` to show visual coverage
-3. **Test Code:** Show a sample test like `testParseSimpleSelectQuery`
-4. **Report:** Present the comprehensive `BACKEND_UNIT_TEST_REPORT.md`
+3. **Test Code:** Sample tests like `testParseSimpleSelectQuery`
 
 ### Demo Flow (3-5 minutes)
 1. Show test file structure in IDE (30 sec)
@@ -143,14 +152,14 @@ Comprehensive test report including:
 4. Show sample test code with explanations (1 min)
 5. Show metrics from report document (30 sec)
 
-### Talking Points
+### Key Points
 - "Implemented 42 comprehensive unit tests"
 - "Achieved 100% pass rate with 26% code coverage"
 - "Used industry-standard tools: JUnit, Mockito, AssertJ"
 - "Tested critical path: query parsing and event processing"
 - "Professional-grade test documentation"
 
-## 📈 Coverage Breakdown
+## Coverage Breakdown
 
 ```
 Package                         Coverage    Classes
@@ -164,7 +173,7 @@ com.trinofed.parser.model           0%        1/1
 Total                              26%       16/16
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Java Version Issues
 If you see compilation errors:
@@ -194,45 +203,10 @@ mvn clean compile test-compile
 mvn clean test jacoco:report
 ```
 
-## 📚 Additional Resources
+## Additional Resources
 
 - **JUnit 5 Documentation:** https://junit.org/junit5/docs/current/user-guide/
 - **Mockito Documentation:** https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html
 - **Spring Boot Testing:** https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing
 - **JaCoCo:** https://www.jacoco.org/jacoco/trunk/doc/
-
-## ✅ Checklist for Presentation
-
-- [ ] All 42 tests passing
-- [ ] Coverage report generated
-- [ ] Can run tests live
-- [ ] Can open coverage report
-- [ ] Have test code examples ready
-- [ ] Report document reviewed
-- [ ] Demo script practiced
-
-## 🚀 Next Steps
-
-To further improve test coverage:
-
-1. **Add Kafka Integration Tests**
-   - Use @EmbeddedKafka
-   - Test TrinoEventConsumer end-to-end
-
-2. **Test Additional Controllers**
-   - AIAnalysisController tests
-   - DatabaseController tests
-
-3. **Increase Service Coverage**
-   - Target 50%+ service layer coverage
-   - Add error scenario tests
-
-4. **Integration Tests**
-   - End-to-end flow tests
-   - Database integration tests
-
 ---
-
-**Last Updated:** November 9, 2025
-**Status:** ✅ All Tests Passing
-**Ready for:** Presentation
