@@ -23,7 +23,7 @@ This guide explains how to run **only the infrastructure services** (Trino, Kafk
 Copy the template to create your environment file:
 
 ```bash
-cp env.template .env
+cp .env.template .env
 ```
 
 ### Step 2: Verify `.env` Contents
