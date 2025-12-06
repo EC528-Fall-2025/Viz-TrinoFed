@@ -1,9 +1,8 @@
 import * as React from "react";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { Handle, Position } from "@xyflow/react";
-import { Check, Output as OutputIcon, TableChart } from "@mui/icons-material";
+import { Check, Output as OutputIcon } from "@mui/icons-material";
 import CopyPaste from "./CopyPaste";
-import { useQueryResults } from "../contexts/QueryResultsContext";
 
 interface OutputNodeProps {
   data: {
@@ -18,14 +17,6 @@ interface OutputNodeProps {
 }
 
 export function OutputNode({ data }: OutputNodeProps) {
-  const { openResults } = useQueryResults();
-
-  const handleViewResults = () => {
-    if (data.query && data.queryId) {
-      openResults(data.query, data.queryId);
-    }
-  };
-
   return (
     <Box 
       role="group" 
@@ -56,32 +47,6 @@ export function OutputNode({ data }: OutputNodeProps) {
           <Check sx={{ color: '#2e7d32' }} />
         </Box>
       </Box>
-
-      {/* Description */}
-      <Typography variant="body2" sx={{ color: '#1b5e20', mb: 1, fontWeight: 500 }}>
-        Final query results
-      </Typography>
-
-      {/* View Results Button */}
-      {data.query && (
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<TableChart />}
-          onClick={handleViewResults}
-          sx={{
-            mb: 1.5,
-            bgcolor: '#2e7d32',
-            color: 'white',
-            fontSize: '0.75rem',
-            textTransform: 'none',
-            fontWeight: 600,
-            '&:hover': { bgcolor: '#1b5e20' },
-          }}
-        >
-          View Query Results
-        </Button>
-      )}
 
       {/* Metrics */}
       {(data.totalRows !== null || data.executionTime !== null) && (
