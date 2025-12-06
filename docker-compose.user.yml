@@ -29,7 +29,7 @@ services:
       # AWS Bedrock AI (optional - disabled by default)
       AWS_BEDROCK_ENABLED: ${AWS_BEDROCK_ENABLED:-false}
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      AWS_BEDROCK_MODEL_ID: ${AWS_BEDROCK_MODEL_ID:-}
+      AWS_BEDROCK_MODEL_ID: ${AWS_BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
 

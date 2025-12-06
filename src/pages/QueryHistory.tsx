@@ -377,8 +377,8 @@ export default function QueryHistory() {
   useEffect(() => {
     loadQueries();
     
-    // Auto-refresh every 3 seconds to pick up new queries
-    const interval = setInterval(loadQueries, 3000);
+    // Auto-refresh every 20000 seconds to pick up new queries
+    const interval = setInterval(loadQueries, 20000);
     
     return () => clearInterval(interval);
   }, []);

@@ -65,6 +65,7 @@ Enable AWS Bedrock for intelligent query optimization suggestions:
 ```bash
 KAFKA_HOST=localhost:9092 \
 AWS_BEDROCK_ENABLED=true \
+AWS_BEDROCK_MODEL_ID=your_model_id \
 AWS_REGION=us-east-1 \
 AWS_ACCESS_KEY_ID=your_key \
 AWS_SECRET_ACCESS_KEY=your_secret \
@@ -83,9 +84,10 @@ AWS_SECRET_ACCESS_KEY=your_secret \
 | `FRONTEND_PORT` | No | `3000` | Port to access the web UI |
 | `BACKEND_PORT` | No | `8080` | Port for the backend API |
 | `AWS_BEDROCK_ENABLED` | No | `false` | Enable AI features |
+| `AWS_BEDROCK_MODEL_ID` | No | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | Model to perform analysis |
 | `AWS_REGION` | No | `us-east-1` | AWS region (if AI enabled) |
-| `AWS_ACCESS_KEY_ID` | No | - | AWS credentials (if AI enabled) |
-| `AWS_SECRET_ACCESS_KEY` | No | - | AWS credentials (if AI enabled) |
+| `AWS_ACCESS_KEY_ID` | Yes (if AI enabled) | - | AWS credentials (if AI enabled) |
+| `AWS_SECRET_ACCESS_KEY` | Yes (if AI enabled) | - | AWS credentials (if AI enabled) |
 
 ---
 
