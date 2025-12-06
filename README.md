@@ -109,10 +109,11 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - Expand/collapse nodes for exploring subquery details.  
 - Hover or click nodes to view connector metadata, execution time, and error messages.  
 - Use **color-coded statuses** for quick readability:  
-  - 🟢 Green = success  
+  - 🟢 Green = successfully running
   - 🟡 Yellow = slow or high latency  
-  - 🔴 Red = error  
-
+  - 🔴 Red = error
+  - 🔵 Blue = sucessfully run
+  - ⚪ White = queued
 ---
 
 ### 6. System Integration
