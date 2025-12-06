@@ -167,11 +167,12 @@ To complement the processing of queries on Trino, a distributed SQL query engine
   - Execution metrics (rows processed, latency, cost)
   - Errors or warnings
 - **Timeline**: Create a timeline on the sidebar to show the order of planning, scheduling, execution and merging to complement the tree structure.
+- **Aggregate Metrics**: A page that allows users to visually see trends in queries over time alongside summary statistics.
 - **User Interaction**: Allow users to scroll through the tree, walk through execution flow, collapse or expand subtrees and nodes to focus on bottlenecks and walk through individual metrics. 
 
 ### 4. Deployment Model
-- **Backend**:  A lightweight service, likely written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them via GraphQL API to the frontend
-- **Scalability**: Deploy on Kubernetes with Kafka for event streaming. Use Prometheus/Grafana for observability. 
+- **Backend**:  A lightweight service, likely written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them to the frontend
+- **Scalability**: Deploy on Kubernetes with Kafka for event streaming. 
 - Modular components for others to integrate with existing Trino monitoring tools.
 
  
@@ -181,7 +182,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **Transparency**: Makes federated query execution across multiple different data sources transparent to the convenience of engineers and programmers who need to identify bottlenecks, learn the database queries quickly, and improves presentation for software products.
 - **Debugging**: Find slow queries, connector-level failures, and failed query connections.
 - **Educational**: Help new users understand distributed query execution, not only new programmers but also new hires in an office to see their database easier and get started faster.
-- **Extendible**: Built on open tools like Prometheus or Kafka that can then scale and integrate into existing systems.
+- **Extendible**: A foundation built upon Kafka that can then scale and integrate into existing systems.
 - **Not just UI**: A pipeline of observability for distributed query execution, in depth at every step. 
 - **Observability**: Doesn’t interfere with Trino events, only observing events.
 
@@ -189,7 +190,8 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - **Kafka**: Kafka is a good broker because Trino generates query events asynchronously, so Kafka provides durability, scalability, and replayability. Kafka also decouples event capture from visualization.
 - **JSON Queries and API Integration**: Trino has existing JSON outputs (EXPLAIN, EXPLAIN ANALYZE, REST endpoints), so we will use these existing outputs to make this product compatible with all Trino core engines, lightweight, and future proof against future Trino updates.
 - **Reactflow**: The best choice for readable frontend of the tree rather than a static log output. We will have expand/collapse nodes, color-coded statuses, and hover interactions to make the simple metrics of the default Trino more readable.
-- **Security choices**: Only expose query metadata and execution metrics, never query results. This way, no sensitive data is leaked. 
+- **D3.js**: D3.js is a JavaScript library that creates abstractions to allow for easy in-browser data visualizations with user-configured update intervals.
+- **AWS Bedrock**: Users can optionally use IAM credentials via AWS CLI in order to connect our visualization and observability suite to their choice of state-of-the-art LLM for greater insight into results.
 
 ## 5. Acceptance criteria
 
@@ -230,11 +232,11 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Add color-coded statuses for quick readability (e.g., green for success, red for error).
 
 ### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
-- Refine the overall UI/UX based on feedback to ensure the visualization is intuitive.
-  - Specifically the help page, query history page, source nodes, and fragment operator tabs.
+- Refine the overall UI/UX based on feedback to ensure the visualization is intuitive, specifically the query history page, and summary metrics.
+- Specifically the help page, query history page, source nodes, and fragment operator tabs.
 - Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
 - Conduct unit testing to test specific backend endpoints and specific frontend functionality.
-  - Controller, layer and parser tests on the backend, edge case tests on the frontend with Vitest to check rendering and query status conditions.
+- Controller, layer and parser tests on the backend, edge case tests on the frontend with Vitest to check rendering and query status conditions.
 - Integrate an AI query improvement helper to suggest optimized query rewrites when a user submits a query and its tree is displayed.
 
 ### Sprint 5: Plugin Packaging & Documentation (11/13-11/24)
