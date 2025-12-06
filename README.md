@@ -231,14 +231,16 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 
 ### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
 - Refine the overall UI/UX based on feedback to ensure the visualization is intuitive.
-  - Specifically the query history page, and summary metrics.
+  - Specifically the help page, query history page, source nodes, and fragment operator tabs.
 - Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
 - Conduct unit testing to test specific backend endpoints and specific frontend functionality.
+  - Controller, layer and parser tests on the backend, edge case tests on the frontend with Vitest to check rendering and query status conditions.
+- Integrate an AI query improvement helper to suggest optimized query rewrites when a user submits a query and its tree is displayed.
 
 ### Sprint 5: Plugin Packaging & Documentation (11/13-11/24)
 - Refine download and install instructions to ensure the application is easy to use.
-- Integrate into a package manager to make installation easier. Possibly a docker image.
-- Perform final system testing and address any remaining bugs.
+- Root Docker-compose file that specifies two Dockerfiles, upload to Docker Hub by end of the project.
+- Perform final system testing with final features, aggregate query features page, visual query results, query operators display, finalized query history page.
 - Prepare the project for its final presentation and public release.
 - Visit stretch goals.
 
