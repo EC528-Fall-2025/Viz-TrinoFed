@@ -10,6 +10,15 @@
 | Jared Shi | jaredshi@bu.edu |
 | Jacky Chen | jchen07@bu.edu |
 
+## Table of Contents
+1. [Vision and Goals Of The Project](#1---vision-and-goals-of-the-project)
+2. [Users / Personas of the Project](#2-users--personas-of-the-project)
+3. [Scope and Features Of The Project](#3---scope-and-features-of-the-project)
+4. [Solution Concept](#4-solution-concept)
+5. [Acceptance Criteria](#5-acceptance-criteria)
+6. [Sprints](#6--release-planning)
+7. [Sprint Demos](#7-sprint-demos)
+
 ## 1.   Vision and Goals Of The Project:
 
 ### Goal
