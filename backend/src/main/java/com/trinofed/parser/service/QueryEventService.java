@@ -18,6 +18,7 @@ public class QueryEventService {
 
     private final Map<String, QueryTree> queryTrees = new ConcurrentHashMap<>();
     private final Map<String, List<QueryEvent>> queryEvents = new ConcurrentHashMap<>();
+    private final Set<String> processedEventIds = ConcurrentHashMap.newKeySet();
     private final Map<String, Set<String>> catalogQueries = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> schemaQueries = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tableQueries = new ConcurrentHashMap<>();
@@ -45,6 +46,19 @@ public class QueryEventService {
 
     public void processEvent(QueryEvent event) {
         String queryId = event.getQueryId();
+
+        // Create unique event ID to prevent duplicates
+        String eventId = queryId + "-" + event.getTimestamp().toEpochMilli() + "-" + event.getState();
+
+        // Check if we've already processed this exact event
+        if (processedEventIds.contains(eventId)) {
+            log.debug("Skipping duplicate event: queryId={}, state={}, timestamp={}",
+                     queryId, event.getState(), event.getTimestamp());
+            return;
+        }
+
+        // Mark event as processed
+        processedEventIds.add(eventId);
 
         // Store event
         queryEvents.computeIfAbsent(queryId, k -> new ArrayList<>()).add(event);
@@ -78,12 +92,16 @@ public class QueryEventService {
         // Send update via WebSocket
         messagingTemplate.convertAndSend("/topic/query-updates", tree);
 
-        // Auto-cache results when query completes successfully
-        if ("FINISHED".equals(event.getState()) && event.getQuery() != null && queryController != null) {
-            log.info("Query FINISHED - triggering auto-cache for queryId: {}", queryId);
-            // Run caching in a separate thread to avoid blocking event processing
+        // AUTO-CACHING DISABLED - Prevents duplicate query entries in history
+        // Re-executing queries to cache results causes them to appear as new queries with different IDs
+        // This feature is disabled to ensure each query appears exactly once in query history
+        /*
+        if ("FINISHED".equals(event.getState()) && event.getQuery() != null &&
+            queryController != null && shouldCacheQuery(event.getQuery())) {
+            log.info("Query FINISHED - auto-caching results for queryId: {}", queryId);
             new Thread(() -> queryController.cacheResultsForQuery(queryId, event.getQuery())).start();
         }
+        */
 
         log.info("Processed event for query: {}, catalog: {}, schema: {}, table: {}, total events: {}",
                 queryId, event.getCatalog(), event.getSchema(), event.getTableName(),

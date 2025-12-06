@@ -46,36 +46,26 @@ public class QueryController {
      * Automatically cache results for a query (called when query completes in Kafka)
      * This ensures results are available before user clicks the button
      */
+    /**
+     * Cache results on-demand (called when user clicks "View Results" button)
+     * This method is NO LONGER called automatically when queries complete
+     */
     public void cacheResultsForQuery(String queryId, String query) {
         if (query == null || query.trim().isEmpty()) {
             log.warn("Cannot cache results - query text is empty for queryId: {}", queryId);
             return;
         }
 
-        // Normalize query text (trim and lowercase for comparison)
-        String normalizedQuery = query.trim().toLowerCase();
-
-        // CRITICAL GUARD: Check if this query TEXT was recently auto-cached (within 3 seconds)
-        long currentTime = System.currentTimeMillis();
-        if (processedQueryTexts.containsKey(normalizedQuery)) {
-            long lastCacheTime = processedQueryTexts.get(normalizedQuery);
-            long timeSinceLastCache = currentTime - lastCacheTime;
-
-            if (timeSinceLastCache < MIN_CACHE_INTERVAL_MS) {
-                // This is likely from auto-caching execution (infinite loop prevention)
-                log.debug("Query text was cached {}ms ago, skipping (likely auto-cache execution): {}", timeSinceLastCache, queryId);
-                return;
-            } else {
-                // This is a NEW user execution (enough time has passed)
-                log.info("Query text was cached {}ms ago, this is a NEW execution: {}", timeSinceLastCache, queryId);
-            }
+        // Check if already cached - if so, no need to re-execute
+        if (resultsCache.containsKey(queryId)) {
+            log.info("Results already cached for queryId: {}, skipping re-execution", queryId);
+            return;
         }
 
-        // Mark this query text as processed with current timestamp
-        processedQueryTexts.put(normalizedQuery, currentTime);
-        log.info("Auto-caching results for queryId: {} at time {}", queryId, currentTime);
+        log.info("Caching results for queryId: {} (user requested via View Results button)", queryId);
 
         try {
+            // Execute query to get results (only happens when user explicitly requests it)
             ProcessBuilder pb = new ProcessBuilder(
                 "docker", "exec", "trino", "trino",
                 "--execute", query,
@@ -95,7 +85,7 @@ public class QueryController {
             String outputStr = output.toString();
 
             if (exitCode != 0) {
-                log.error("Failed to auto-cache results for queryId: {} - execution failed: {}", queryId, outputStr);
+                log.error("Failed to cache results for queryId: {}", queryId);
                 return;
             }
 
@@ -130,10 +120,10 @@ public class QueryController {
             response.put("cached", true);
 
             resultsCache.put(queryId, response);
-            log.info("✓ Results auto-cached for queryId: {} ({} rows)", queryId, rows.size());
+            log.info("✓ Results cached for queryId: {} ({} rows)", queryId, rows.size());
 
         } catch (Exception e) {
-            log.error("Error auto-caching results for queryId: {}", queryId, e);
+            log.error("Error caching results for queryId: {}", queryId, e);
         }
     }
 
@@ -165,44 +155,19 @@ public class QueryController {
 
     @GetMapping("/{queryId}/results")
     public ResponseEntity<Map<String, Object>> getQueryResults(@PathVariable String queryId) {
-        log.info("Fetching cached results for queryId: {}", queryId);
+        log.info("View Results feature disabled - queryId: {}", queryId);
 
-        // Check if this queryId has cached results
-        if (resultsCache.containsKey(queryId)) {
-            log.info("✓ Returning cached results for queryId: {} (NO execution)", queryId);
-            return ResponseEntity.ok(resultsCache.get(queryId));
-        }
-
-        // If not found, try to find results by query text (for auto-cache executions)
-        QueryTree tree = queryEventService.getQueryTree(queryId);
-        if (tree != null && tree.getQuery() != null) {
-            String normalizedQuery = tree.getQuery().trim().toLowerCase();
-
-            // Search for ANY queryId with the same query text that has cached results
-            for (Map.Entry<String, Map<String, Object>> entry : resultsCache.entrySet()) {
-                String cachedQueryId = entry.getKey();
-                QueryTree cachedTree = queryEventService.getQueryTree(cachedQueryId);
-
-                if (cachedTree != null && cachedTree.getQuery() != null) {
-                    String cachedNormalizedQuery = cachedTree.getQuery().trim().toLowerCase();
-
-                    if (normalizedQuery.equals(cachedNormalizedQuery)) {
-                        log.info("✓ Found cached results for same query text, using queryId: {}", cachedQueryId);
-                        return ResponseEntity.ok(entry.getValue());
-                    }
-                }
-            }
-        }
-
-        // Results not cached
-        log.warn("Results not available for queryId: {} - may still be processing or query hasn't completed yet", queryId);
+        // VIEW RESULTS FEATURE DISABLED
+        // This feature has been disabled to prevent duplicate query entries in history.
+        // Re-executing queries to fetch results causes them to appear as new queries with different IDs.
 
         Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Query results are not yet available. Please wait a moment for the query to complete and results to be cached.");
+        errorResponse.put("error", "View Results feature is disabled");
         errorResponse.put("queryId", queryId);
-        errorResponse.put("suggestion", "Results are automatically cached when the query completes. Try refreshing in a few seconds.");
+        errorResponse.put("reason", "This feature has been disabled to prevent duplicate query entries in history");
+        errorResponse.put("suggestion", "Execute queries from the Trino interface to view results directly");
 
-        return ResponseEntity.status(404).body(errorResponse);
+        return ResponseEntity.status(501).body(errorResponse); // 501 Not Implemented
     }
 
     @PostMapping("/execute")
