@@ -8,6 +8,13 @@ RUN mvn clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
+
+# Install Docker CLI for query result caching feature
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends docker.io && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/target/trino-kafka-parser-*.jar app.jar
 
 EXPOSE 8080
