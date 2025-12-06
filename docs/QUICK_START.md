@@ -1,4 +1,4 @@
-# ⚡ Quick Start Guide
+# Quick Start Guide
 
 **For users who want to start immediately from source without reading the full guide.**
 
