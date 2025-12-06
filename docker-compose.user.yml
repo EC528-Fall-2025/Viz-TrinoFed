@@ -19,24 +19,27 @@
 
 services:
   backend:
-    image: ${DOCKER_REGISTRY:-viztrinofed}/viz-trinofed-backend:${IMAGE_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-nstrahs}/viz-trinofed-backend:${IMAGE_TAG:-latest}
     container_name: viz-trinofed-backend
     environment:
       # Kafka configuration (REQUIRED - set KAFKA_HOST to your Kafka broker)
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_HOST:-host.docker.internal:9092}
       TRINO_KAFKA_TOPIC: ${KAFKA_TOPIC:-trino-query-events}
-      
+
       # AWS Bedrock AI (optional - disabled by default)
       AWS_BEDROCK_ENABLED: ${AWS_BEDROCK_ENABLED:-false}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_BEDROCK_MODEL_ID: ${AWS_BEDROCK_MODEL_ID:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      
+
       # Server config
       SERVER_PORT: 8080
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      # Mount Docker socket to enable query result caching via docker exec
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - viz-network
       - kafka-network
@@ -45,7 +48,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${DOCKER_REGISTRY:-viztrinofed}/viz-trinofed-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-nstrahs}/viz-trinofed-frontend:${IMAGE_TAG:-latest}
     container_name: viz-trinofed-frontend
     environment:
       # Backend connection (internal Docker network)
