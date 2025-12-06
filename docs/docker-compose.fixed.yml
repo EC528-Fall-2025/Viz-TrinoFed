@@ -1,15 +1,4 @@
-# ==============================================================================
-# Viz-TrinoFed - Fixed Backend + Frontend
-# ==============================================================================
-# This docker-compose runs the frontend and backend with the duplicate query fix
-#
-# Usage:
-#   cd /Users/lizhengyuan/Viz-TrinoFed/docs
-#   docker-compose -f docker-compose.fixed.yml up --build -d
-#
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8080
-# ==============================================================================
+
 
 services:
   backend:
