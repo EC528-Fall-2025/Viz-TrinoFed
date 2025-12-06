@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-✅ **All Tests Passed**
+**All Tests Passed**
 
 | Metric | Value |
 |--------|-------|
@@ -35,14 +35,14 @@
 | Execution Time | 2.685s |
 
 **Test Cases:**
-- ✅ testGetAllQueries - Verify retrieval of all query trees
-- ✅ testGetAllQueriesEmpty - Handle empty query list
-- ✅ testGetQueryById - Retrieve specific query by ID
-- ✅ testGetQueryByIdNotFound - Return 404 for non-existent query
-- ✅ testGetAllQueryIds - Retrieve all query identifiers
-- ✅ testGetAllQueryIdsEmpty - Handle empty query ID list
-- ✅ testGetQueryWithSpecialCharacters - Handle special chars in query ID
-- ✅ testCorsConfiguration - Verify CORS headers
+- testGetAllQueries - Verify retrieval of all query trees
+- testGetAllQueriesEmpty - Handle empty query list
+- testGetQueryById - Retrieve specific query by ID
+- testGetQueryByIdNotFound - Return 404 for non-existent query
+- testGetAllQueryIds - Retrieve all query identifiers
+- testGetAllQueryIdsEmpty - Handle empty query ID list
+- testGetQueryWithSpecialCharacters - Handle special chars in query ID
+- testCorsConfiguration - Verify CORS headers
 
 **Coverage:**
 - **Instructions:** 47/47 (100%)
@@ -63,14 +63,14 @@
 | Execution Time | 0.115s |
 
 **Test Cases:**
-- ✅ testBuilderPattern - Verify builder pattern implementation
-- ✅ testSerialization - JSON serialization test
-- ✅ testDeserialization - JSON deserialization test
-- ✅ testChildrenNodes - Test hierarchical node relationships
-- ✅ testDefaultChildren - Verify default empty children list
-- ✅ testMetadata - Test metadata map handling
-- ✅ testEqualsAndHashCode - Verify equals and hashCode contract
-- ✅ testNullValues - Handle null values gracefully
+- testBuilderPattern - Verify builder pattern implementation
+- testSerialization - JSON serialization test
+- testDeserialization - JSON deserialization test
+- testChildrenNodes - Test hierarchical node relationships
+- testDefaultChildren - Verify default empty children list
+- testMetadata - Test metadata map handling
+- testEqualsAndHashCode - Verify equals and hashCode contract
+- testNullValues - Handle null values gracefully
 
 ---
 
@@ -85,18 +85,18 @@
 | Execution Time | 0.033s |
 
 **Test Cases:**
-- ✅ testParseSimpleSelectQuery - Parse simple SELECT statement
-- ✅ testParseJoinQuery - Parse complex JOIN with multiple children
-- ✅ testParseNullInput - Handle null input gracefully
-- ✅ testParseEmptyString - Handle empty string input
-- ✅ testParseWhitespaceInput - Handle whitespace-only input
-- ✅ testParseMalformedJson - Handle malformed JSON gracefully
-- ✅ testExtractCostEstimates - Extract query cost estimates
-- ✅ testExtractOperatorListSimple - Extract operators from simple query
-- ✅ testExtractOperatorListComplex - Extract operators from complex query
-- ✅ testExtractOperatorListNullInput - Handle null in operator extraction
-- ✅ testExtractTableInformation - Extract table info from TableScan
-- ✅ testMissingFragmentZero - Handle missing fragment '0'
+- testParseSimpleSelectQuery - Parse simple SELECT statement
+- testParseJoinQuery - Parse complex JOIN with multiple children
+- testParseNullInput - Handle null input gracefully
+- testParseEmptyString - Handle empty string input
+- testParseWhitespaceInput - Handle whitespace-only input
+- testParseMalformedJson - Handle malformed JSON gracefully
+- testExtractCostEstimates - Extract query cost estimates
+- testExtractOperatorListSimple - Extract operators from simple query
+- testExtractOperatorListComplex - Extract operators from complex query
+- testExtractOperatorListNullInput - Handle null in operator extraction
+- testExtractTableInformation - Extract table info from TableScan
+- testMissingFragmentZero - Handle missing fragment '0'
 
 **Coverage:**
 - **Instructions:** 383/395 (96.96%)
@@ -117,19 +117,19 @@
 | Execution Time | 0.194s |
 
 **Test Cases:**
-- ✅ testStoreAndRetrieveQueryEvent - Store and retrieve query events
-- ✅ testGetNonExistentQuery - Return null for non-existent query
-- ✅ testMultipleEventsForSameQuery - Track multiple events per query
-- ✅ testGetAllQueryIds - Retrieve all query identifiers
-- ✅ testGetAllQueryTrees - Retrieve all query trees
-- ✅ testGetQueriesByCatalog - Filter queries by catalog
-- ✅ testGetQueriesBySchema - Filter queries by schema
-- ✅ testGetQueriesByTable - Filter queries by table
-- ✅ testGetDatabaseSummary - Generate database summary
-- ✅ testDatabaseServiceIntegration - Verify database service integration
-- ✅ testJsonPlanParsing - Parse JSON execution plans
-- ✅ testEventWithoutJsonPlan - Handle events without JSON plan
-- ✅ testGetQueriesByNonExistentCatalog - Handle non-existent catalog
+- testStoreAndRetrieveQueryEvent - Store and retrieve query events
+- testGetNonExistentQuery - Return null for non-existent query
+- testMultipleEventsForSameQuery - Track multiple events per query
+- testGetAllQueryIds - Retrieve all query identifiers
+- testGetAllQueryTrees - Retrieve all query trees
+- testGetQueriesByCatalog - Filter queries by catalog
+- testGetQueriesBySchema - Filter queries by schema
+- testGetQueriesByTable - Filter queries by table
+- testGetDatabaseSummary - Generate database summary
+- testDatabaseServiceIntegration - Verify database service integration
+- testJsonPlanParsing - Parse JSON execution plans
+- testEventWithoutJsonPlan - Handle events without JSON plan
+- testGetQueriesByNonExistentCatalog - Handle non-existent catalog
 
 **Coverage:**
 - **Instructions:** 575/692 (83.09%)
@@ -150,7 +150,7 @@
 | Execution Time | 0.842s |
 
 **Test Cases:**
-- ✅ contextLoads - Verify Spring application context loads successfully
+- contextLoads - Verify Spring application context loads successfully
 
 ---
 
@@ -168,7 +168,7 @@
 
 ### Key Coverage Highlights
 
-#### ✅ Fully Covered Components
+#### Fully Covered Components
 1. **QueryController** - 100% coverage (All REST endpoints)
 2. **Configuration Classes** - 100% coverage
    - KafkaConsumerConfig
@@ -176,11 +176,11 @@
    - WebSocketConfig
 3. **QueryPlanParser** - 96.96% instruction coverage
 
-#### 📊 Well-Covered Components
+#### Well-Covered Components
 1. **QueryEventService** - 83.09% instruction coverage
 2. **QueryTreeNode Model** - Comprehensive unit tests
 
-#### 🔍 Components Not Covered (Not Unit Test Targets)
+#### Components Not Covered (Not Unit Test Targets)
 The following components are integration-level or infrastructure components not suitable for unit testing:
 1. **TrinoEventConsumer** - Kafka consumer (requires integration tests)
 2. **DatabaseService** - Complex database operations (requires integration tests)
@@ -193,10 +193,10 @@ The following components are integration-level or infrastructure components not 
 ## Test Quality Metrics
 
 ### Test Organization
-- ✅ **Clear Test Names:** All tests use descriptive `@DisplayName` annotations
-- ✅ **Given-When-Then Structure:** Tests follow AAA (Arrange-Act-Assert) pattern
-- ✅ **Proper Isolation:** Using `@MockBean` and Mockito for dependency mocking
-- ✅ **Edge Case Coverage:** Null inputs, empty strings, malformed data
+- **Clear Test Names:** All tests use descriptive `@DisplayName` annotations
+- **Given-When-Then Structure:** Tests follow AAA (Arrange-Act-Assert) pattern
+- **Proper Isolation:** Using `@MockBean` and Mockito for dependency mocking
+- **Edge Case Coverage:** Null inputs, empty strings, malformed data
 
 ### Test Performance
 - **Average Test Execution:** 0.092 seconds per test
@@ -239,7 +239,7 @@ The following components are integration-level or infrastructure components not 
 - **Java Version:** OpenJDK 22.0.2
 - **Spring Boot Version:** 3.2.1
 - **Build Command:** `mvn clean test`
-- **Build Status:** ✅ SUCCESS
+- **Build Status:** SUCCESS
 
 ### Test Reports Generated
 1. **Surefire Reports:** `backend/target/surefire-reports/`
@@ -257,21 +257,13 @@ open backend/target/site/jacoco/index.html
 
 ## Testing Strategy Assessment
 
-### ✅ Strengths
+### Strengths
 1. **Comprehensive Layer Testing** - All architectural layers tested
 2. **High Controller Coverage** - 100% REST API endpoint coverage
 3. **Robust Parser Testing** - Extensive edge case coverage
 4. **Clean Test Code** - Well-organized, readable tests
 5. **Fast Execution** - All tests complete in under 4 seconds
 6. **Proper Mocking** - Good isolation of dependencies
-
-### 📈 Recommendations for Future Enhancement
-1. **Integration Tests** - Add tests for Kafka consumer and database interactions
-2. **AWS Service Tests** - Add integration tests for Bedrock AI service
-3. **Performance Tests** - Add load testing for high-volume scenarios
-4. **Contract Tests** - Add API contract tests for frontend integration
-5. **Mutation Testing** - Consider using PIT for mutation testing
-
 ---
 
 ## Test Files Location
@@ -295,12 +287,12 @@ backend/src/test/java/com/trinofed/parser/
 
 The backend unit testing suite demonstrates **excellent coverage of core business logic** with all 42 tests passing successfully. The test suite provides:
 
-- ✅ 100% pass rate
-- ✅ Comprehensive REST API testing
-- ✅ Thorough service layer validation
-- ✅ Robust parser testing with edge cases
-- ✅ Model validation and serialization tests
-- ✅ Fast execution (< 4 seconds)
+-  100% pass rate
+-  Comprehensive REST API testing
+-  Thorough service layer validation
+-  Robust parser testing with edge cases
+-  Model validation and serialization tests
+-  Fast execution (< 4 seconds)
 
 The testing strategy successfully validates the critical components of the query processing pipeline while maintaining clean, maintainable test code following industry best practices.
 
@@ -321,12 +313,9 @@ The testing strategy successfully validates the critical components of the query
 ```
 
 ### Coverage Report Access
-- **HTML Report:** file:///Users/lizhengyuan/Viz-TrinoFed/backend/target/site/jacoco/index.html
+- **HTML Report:** file://Viz-TrinoFed/backend/target/site/jacoco/index.html
 - **XML Report:** backend/target/site/jacoco/jacoco.xml
 - **CSV Report:** backend/target/site/jacoco/jacoco.csv
 
 ---
-
-**Report Generated:** November 11, 2025, 19:41 EST
-**Test Framework:** JUnit 5 (Jupiter) + Mockito + Spring Boot Test
 **Coverage Tool:** JaCoCo 0.8.11
