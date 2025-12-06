@@ -2,7 +2,7 @@
 
 This folder contains initialization scripts that automatically populate PostgreSQL and MongoDB with sample data when Docker containers start.
 
-## 📁 Files
+## Files
 
 ### `postgres-init.sql`
 Creates and populates PostgreSQL tables:
@@ -14,7 +14,7 @@ Creates and populates MongoDB collections:
 - **`products`** collection: 5 electronics products with specifications
 - **`reviews`** collection: 5 product reviews with ratings
 
-## 🔄 How It Works
+## How It Works
 
 When you run `docker-compose up`, these scripts are automatically executed:
 1. PostgreSQL runs `postgres-init.sql` on first startup
@@ -29,7 +29,7 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-## 🧪 Sample Queries
+## Sample Queries
 
 Once data is loaded, try these Trino queries:
 
@@ -92,7 +92,7 @@ JOIN postgres.public.orders o ON c.id = o.customer_id
 LEFT JOIN mongodb.sample_db.products p ON LOWER(o.product_name) = LOWER(p.name);
 ```
 
-## 📊 Data Overview
+## Data Overview
 
 ### PostgreSQL Tables:
 | Table | Rows | Columns |
