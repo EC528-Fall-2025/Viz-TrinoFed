@@ -9,7 +9,7 @@ This directory contains all backend unit testing files, reports, and documentati
 3. [Test Results Summary](#test-results-summary)
 4. [Files Included](#files-included)
 5. [What Was Tested](#what-was-tested)
-6. [Conclusion](#conclusioin)
+6. [Conclusion](#conclusion)
 7. [Coverage Breakdown](#coverage-breakdown)
 8. [Troubleshooting](#troubleshooting)
 9. [Additional Resources](#additional-resources)
@@ -138,7 +138,7 @@ Comprehensive test report including:
 -  WebSocketConfig
 -  CorsConfig
 
-## Conclusioin
+## Conclusion
 
 ### Where to Find Metrics
 1. **Test Execution:** Show `mvn test` running with all 42 tests passing
