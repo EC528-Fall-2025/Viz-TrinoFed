@@ -236,7 +236,7 @@ To complement the processing of queries on Trino, a distributed SQL query engine
 - Specifically the help page, query history page, source nodes, and fragment operator tabs.
 - Conduct end-to-end testing with complex federated queries to ensure accuracy and performance.
 - Conduct unit testing to test specific backend endpoints and specific frontend functionality.
-- Controller, layer and parser tests on the backend, edge case tests on the frontend with Vitest to check rendering and query status conditions.
+- Controller, layer and parser tests on the backend. Edge case tests on the frontend with Vitest to check rendering and query status conditions. All on "tests" folder.
 - Integrate an AI query improvement helper to suggest optimized query rewrites when a user submits a query and its tree is displayed.
 
 ### Sprint 5: Plugin Packaging & Documentation (11/13-11/24)
