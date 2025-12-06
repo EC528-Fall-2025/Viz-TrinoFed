@@ -31,15 +31,15 @@
 This project aims to enhance the observability of Trino as a federated query engine by providing clear visibility into the full lifecycle of a query’s execution. While Trino allows users to query across differing data sources as if they were a single system, the lack of transparency into how queries are parsed, scheduled, and executed poses challenges for performance monitoring and troubleshooting. The current UI is complex and technical, representing a significant barrier to user understanding. By developing a visualization of query trees with extensive time-spent metrics, this project will enable users to better understand query behavior, identify performance bottlenecks, and correct errors, ultimately improving user and developer productivity with Trino. 
 
 ### Features
-- Clear Phases: Separate visualizations for each phase of querying (planning, scheduling, execution, merging).
+- Clear phases: Separate visualizations for each phase of querying (planning, scheduling, execution, merging).
 - Query tree visualization: A visual representation of Trino query plans and their decomposition into sub-queries and tasks.
-- Integration of Metrics: A display of execution metrics such as planning time, scheduling delays, execution time per connector, network latency, and join/merge performance.
-- Comprehensive Testing Suite: A suite of frontend unit tests, backend unit tests, and integration tests, to ensure proper functionality of the application.
-- Error Mapping: A list of surface errors and exceptions in the visualization, showing exactly where failures occurred within the query tree, displayed at a high-level, and optionally in low-level detail. 
-- Performance Analysis: Identification of bottlenecks across the federated data sources, allowing performance tuning by making visible the impact of connector behavior, delays, and scheduling overhead.
-- AI-Powered Query Optimization: Integrated Amazon Bedrock AI to analyze queries and provide optimization suggestions, bottleneck analysis, and optimized query rewrites to reduce latency.
+- Integration of metrics: A display of execution metrics such as planning time, scheduling delays, execution time per connector, network latency, and join/merge performance, with aggregate metrics available
+- Comprehensive testing suite: A suite of frontend unit tests, backend unit tests, and integration tests, to ensure proper functionality of the application.
+- Error mapping: A list of surface errors and exceptions in the visualization, showing exactly where failures occurred within the query tree, displayed at a high-level, and optionally in low-level detail. 
+- Performance analysis: Identification of bottlenecks across the federated data sources, allowing performance tuning by making visible the impact of connector behavior, delays, and scheduling overhead.
+- AI-Powered query optimization: Integrated Amazon Bedrock AI to analyze queries and provide optimization suggestions, bottleneck analysis, and optimized query rewrites to reduce latency.
 - Intuitive UI: Interactive visualization interface using React and Typescript. 
-- Docker Images: Easy to download and use docker images, with clear documentation listed in the `docs` directory.
+- Docker images: Easy to download and use docker images, with clear documentation listed in the `docs` directory.
 
 
 ## 3. Users / Personas of the Project
@@ -105,8 +105,9 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 ---
 
 ### 5. Interactive User Interface Features
-- Implement the frontend with **ReactFlow and TypeScript** to enable interactive visualization.  
-- Expand/collapse nodes for exploring subquery details.  
+- Implement the frontend with **ReactFlow, D3.js, and TypeScript** to enable interactive visualization.  
+- Expand/collapse nodes for exploring subquery details.
+- Revisit any query in the history
 - Hover or click nodes to view connector metadata, execution time, and error messages.  
 - Use **color-coded statuses** for quick readability:  
   - 🟢 Green = successfully running
@@ -114,6 +115,7 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
   - 🔴 Red = error
   - 🔵 Blue = sucessfully run
   - ⚪ White = queued
+    
 ---
 
 ### 6. System Integration
@@ -140,7 +142,6 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 ## Out of Scope
 - Modifying Trino’s internal query engine or scheduling mechanisms.  
 - Supporting all connectors (initial scope limited to PostgreSQL and MongoDB).  
-
 
 ** **
 
@@ -170,10 +171,9 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - **User Interaction**: Allow users to scroll through the tree, walk through execution flow, collapse or expand subtrees and nodes to focus on bottlenecks and walk through individual metrics. 
 
 ### 4. Deployment Model
-- **Backend**:  A lightweight service, written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them to the frontend
+- **Backend**: A lightweight service, written in Java, the same language as Trino, or Node.js to integrate with React better. This backend connects to Trino and handles the plans, metrics, and then exposes them to the frontend
 - Modular components for others to integrate with existing Trino monitoring tools.
 
- 
 ## Design Implications and Discussion:
 
 ### 1. Design Implications
@@ -200,7 +200,7 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - **Plugin Packaging**: The final tool must be packaged as a basic, open-source Docker Image to facilitate straightforward installation and use by the Trino community.
 
 ### Stretch goals:
-- **Advanced Metric Visualization**: Display detailed, per-phase performance metrics, including planning time, network latency, scheduling delays, and join/merge time. Implement color-coded indicators (🟢, 🟡, 🔴) to denote success, high latency, or failure.   
+- **Advanced Metric Visualization**: Display detailed, per-phase performance metrics, including planning time, network latency, scheduling delays, and join/merge time. Implement color-coded indicators to denote success, high latency, or failure.   
 - **Enhanced UI Interactivity**: Implement advanced UI features using ReactFlow, such as the ability to expand and collapse nodes in the query tree and hover over a node to view detailed metadata and error logs.
 - **Historical Query Analysis**: Integrate a persistent storage solution (e.g., a simple database) to store query metrics, allowing users to view and analyze the history of recent query executions.
 - **Broader Connector Support**: Extend the visualization tool to reliably support additional Trino connectors beyond the initial PostgreSQL and MongoDB scope.
@@ -227,7 +227,7 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - Implement logic to visually flag failed nodes in the tree.
 - Show high-level error messages in the UI when a user interacts with a failed node.  
 - Implement advanced UI features like the ability to expand and collapse nodes in the query tree.
-- Add color-coded statuses for quick readability (e.g., green for success, red for error).
+- Add color-coded statuses for quick readability.
 
 ### Sprint 4: UI Interactivity & Refinement (10/30-11/12)
 - Refine the overall UI/UX based on feedback to ensure the visualization is intuitive, specifically the query history page, and summary metrics.
