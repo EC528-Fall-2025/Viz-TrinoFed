@@ -2,7 +2,7 @@
 
 These scripts generate multiple Trino queries over time to populate the graphs on the Overall Stats page with time-series data.
 
-## 📊 Available Scripts
+## Available Scripts
 
 ### 1. `quick-test-queries.sh` - Quick Start (5 queries)
 **Best for:** Quick testing and seeing immediate results
@@ -58,7 +58,7 @@ Runs a single simple query to test the end-to-end flow.
 
 ---
 
-## 🎯 What Metrics Are Captured?
+## What Metrics Are Captured?
 
 Each query generates data points for these graphs:
 
@@ -67,7 +67,7 @@ Each query generates data points for these graphs:
 3. **Peak Memory (bytes)** - Maximum memory usage
 4. **Total Rows** - Number of rows returned
 
-## 📈 Viewing the Results
+## Viewing the Results
 
 After running any script:
 
@@ -78,7 +78,7 @@ After running any script:
    - Performance trends
    - Resource usage patterns
 
-## 🔄 Continuous Data Generation
+## Continuous Data Generation
 
 To continuously generate data for testing:
 
@@ -91,7 +91,7 @@ while true; do
 done
 ```
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 Before running these scripts, ensure:
 
@@ -113,7 +113,7 @@ Before running these scripts, ensure:
    # Should return: "5"
    ```
 
-## 📝 Query Types Included
+## Query Types Included
 
 The comprehensive script includes:
 
@@ -126,7 +126,7 @@ The comprehensive script includes:
 - **Window functions** - Advanced SQL features (CPU intensive)
 - **Complex analytics** - Multiple operations combined
 
-## 🎨 Graph Features
+## Graph Features
 
 The graphs will show:
 
@@ -135,14 +135,14 @@ The graphs will show:
 - **Data points:** Each query execution
 - **Trends:** Performance patterns over time
 
-## 💡 Tips
+## Tips
 
 1. **For best visualization:** Run `generate-test-queries.sh` to get 15+ data points
 2. **For quick testing:** Use `quick-test-queries.sh` for immediate feedback
 3. **For continuous monitoring:** Run scripts in a loop to simulate ongoing query workload
 4. **Refresh graphs:** The Overall Stats page auto-refreshes every 3 seconds
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **No queries appearing in graphs:**
 - Check backend is running: `curl http://localhost:8080/api/queries`
