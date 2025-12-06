@@ -242,7 +242,6 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - Root Docker-compose file that specifies two Dockerfiles, upload to Docker Hub by end of the project.
 - Perform final system testing with final features, aggregate query features page, visual query results, query operators display, finalized query history page.
 - Prepare the project for its final presentation and public release.
-- Visit stretch goals.
 
 ** **
 
