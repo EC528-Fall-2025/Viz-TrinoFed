@@ -145,8 +145,8 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 
 ## 5. Solution Concept
 
-## Current Architecture
-<img width="781" height="772" alt="Trino Viz Architecture Diagram" src="https://github.com/user-attachments/assets/e147687f-daa8-43e4-b0cf-3cef3743c4bb" />
+## Architecture
+<img width="578" height="568" alt="Screenshot 2025-12-06 at 4 48 52 PM" src="https://github.com/user-attachments/assets/91ee7331-73f1-4ce0-ad29-a382ba3ea70c" />
 
 ## Global Architectural Structure Of the Project:
 ### 1. Data Collection Layer
