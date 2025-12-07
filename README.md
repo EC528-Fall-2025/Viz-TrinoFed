@@ -118,10 +118,10 @@ Anyone who needs to understand, debug, and optimize queries that span multiple d
 - Revisit any query in the history
 - Hover or click nodes to view connector metadata, execution time, and error messages.  
 - Use **color-coded statuses** for quick readability:  
-  - 🟢 Green = successfully running
+  - 🟢 Green = successfully run
   - 🟡 Yellow = slow or high latency  
   - 🔴 Red = error
-  - 🔵 Blue = sucessfully run
+  - 🔵 Blue = unknown
   - ⚪ White = queued
     
 ---
