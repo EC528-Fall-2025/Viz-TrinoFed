@@ -23,7 +23,7 @@ This guide explains how to run **only the infrastructure services** (Trino, Kafk
 Copy the template to create your environment file:
 
 ```bash
-cp env.template .env
+cp .env.template .env
 ```
 
 ### Step 2: Verify `.env` Contents
@@ -38,7 +38,7 @@ POSTGRES_DB=testdb
 
 # MongoDB Configuration
 MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=admin123
+MONGO_INITDB_ROOT_PASSWORD=password
 
 # AWS Bedrock (optional - disabled by default)
 AWS_BEDROCK_ENABLED=false

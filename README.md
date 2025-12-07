@@ -21,6 +21,14 @@
 8. [Sprint Demos](#8-sprint-demos)
 
 ## 1. Installation Instructions
+
+In order to install with docker, you first need all the dependencies running (specifically kafka). An example of our setup can be found at [Env Sample Guide](/docs/SAMPLE_ENV_SETUP.md).
+
+Alternatively, you can also build from source.
+
+Next, follow steps detailed in the [Docker Install](/docs/DOCKER_INSTALL.md) instructions.
+
+
 - [Docker Install](/docs/DOCKER_INSTALL.md) (Recommended)
 - [Install From Source](/docs/QUICK_START.md)
 
