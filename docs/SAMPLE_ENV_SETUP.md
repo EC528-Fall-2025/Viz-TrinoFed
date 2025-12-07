@@ -38,7 +38,7 @@ POSTGRES_DB=testdb
 
 # MongoDB Configuration
 MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=admin123
+MONGO_INITDB_ROOT_PASSWORD=password
 
 # AWS Bedrock (optional - disabled by default)
 AWS_BEDROCK_ENABLED=false

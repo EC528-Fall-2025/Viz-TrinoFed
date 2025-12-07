@@ -15,7 +15,7 @@ Viz-TrinoFed provides real-time visualization of Trino query execution. This gui
 ### 1. Download the Compose File
 
 ```bash
-curl -O https://github.com/EC528-Fall-2025/Viz-TrinoFed/main/docker-compose.user.yml
+curl -O https://raw.githubusercontent.com/EC528-Fall-2025/Viz-TrinoFed/refs/heads/main/docker-compose.user.yml
 ```
 
 ### 2. Start the Application
