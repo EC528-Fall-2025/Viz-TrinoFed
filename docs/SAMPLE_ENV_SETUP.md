@@ -18,7 +18,16 @@ This guide explains how to run **only the infrastructure services** (Trino, Kafk
 
 ## Quick Start
 
-### Step 1: Create Your `.env` File
+### Step 1: Clone and cd
+
+Clone the github repository:
+
+```bash
+git clone https://github.com/EC528-Fall-2025/Viz-TrinoFed.git
+cd Viz-TrinoFed
+```
+
+### Step 2: Create Your `.env` File
 
 Copy the template to create your environment file:
 
@@ -26,7 +35,7 @@ Copy the template to create your environment file:
 cp .env.template .env
 ```
 
-### Step 2: Verify `.env` Contents
+### Step 3: Verify `.env` Contents
 
 Your `.env` file should contain at minimum:
 
@@ -46,7 +55,7 @@ AWS_BEDROCK_ENABLED=false
 
 > **Note:** The default values work out of the box. You only need to change them if you have specific requirements.
 
-### Step 3: Start the Infrastructure
+### Step 4: Start the Infrastructure
 
 ```bash
 docker-compose up -d
@@ -54,7 +63,7 @@ docker-compose up -d
 
 This starts all infrastructure services in the background.
 
-### Step 4: Verify Everything is Running
+### Step 5: Verify Everything is Running
 
 ```bash
 docker-compose ps
@@ -67,7 +76,7 @@ You should see 5 containers running:
 - `mongodb`
 - `trino`
 
-### Step 5: Test Trino
+### Step 6: Test Trino
 
 Open the Trino UI in your browser: **http://localhost:8081**
 
